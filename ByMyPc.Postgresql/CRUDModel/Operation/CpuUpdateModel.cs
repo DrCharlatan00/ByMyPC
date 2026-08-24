@@ -6,6 +6,15 @@ namespace ByMyPc.Postgresql.CRUDModel.Operation
 {
     public class CpuUpdateModel
     {
+        public CpuUpdateModel(string? name, string? socket, int frequency, int count_Cores, bool isLive)
+        {
+            Name = name;
+            Socket = socket;
+            Frequency = frequency;
+            Count_Cores = count_Cores;
+            IsLive = isLive;
+        }
+
         public string? Name { get; set; }
         public string? Socket { get; set; }
         public int Frequency { get; set; }
@@ -15,6 +24,15 @@ namespace ByMyPc.Postgresql.CRUDModel.Operation
 
     public class CpuCreateModel
     {
+        public CpuCreateModel(string name, string socket, int frequency, int count_Cores, bool isLive)
+        {
+            Name = name;
+            Socket = socket;
+            Frequency = frequency;
+            Count_Cores = count_Cores;
+            IsLive = isLive;
+        }
+
         public string Name { get; set; } = "N/A";
         public string Socket { get; set; } = "N?A";
         public int Frequency { get; set; } = 0;

@@ -1,0 +1,6 @@
+@ByMyPC_HostAddress = http://localhost:5140
+
+GET {{ByMyPC_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

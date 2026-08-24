@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ByMyPc.Postgresql/ByMyPc.Postgresql.csproj" />
+  <Project Path="ByMyPC/ByMyPC.csproj" />
+</Solution>

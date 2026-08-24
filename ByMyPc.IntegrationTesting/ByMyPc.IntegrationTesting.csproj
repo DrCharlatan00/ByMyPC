@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ByMyPc.Postgresql\ByMyPc.Postgresql.csproj" />
+    <ProjectReference Include="..\ByMyPC\ByMyPC.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 

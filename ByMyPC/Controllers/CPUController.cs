@@ -44,14 +44,14 @@ namespace ByMyPC.Controllers
             return data is not null ? Ok(data) : Problem(detail: "The server unexpectedly failed to return the collection.");
         }
 
-        [HttpGet("seach-name")]
+        [HttpGet("search-name")]
         public async Task<IActionResult> SeachByName([FromQuery] string name, CancellationToken cancellationToken) {
             var data = await cpuService.SearchByNameAsync(name, cancellationToken);
             return Ok(data);
         }
 
 
-        [HttpGet("seach-name-pag")]
+        [HttpGet("search-name-pag")]
         public async Task<IActionResult> SeachByNameCardPagination([FromQuery] string name, [FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken) {
             var data = await cpuService.SearchByNameWithPaginationAsync(name,page,pageSize,cancellationToken);
             return Ok(data);
@@ -60,7 +60,7 @@ namespace ByMyPC.Controllers
         [HttpPut]
         public async Task<IActionResult> Update([FromBody] DTOCpuUpdateModel model) {
             var result = await cpuService.UpdateAsync(model);
-            return result is null ? Ok(result) : Problem(detail: "Data unexpect not updated");
+            return result is not null ? Ok(result) : Problem(detail: "Data unexpect not updated");
         }
 
         [HttpPost]

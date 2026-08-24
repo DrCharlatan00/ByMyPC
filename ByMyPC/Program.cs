@@ -3,6 +3,7 @@ using ByMyPc.Postgresql.Repository;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Models.CpuModels;
 using ByMyPC.Models.CpuModels.DTO;
+using ByMyPC.Services.CpuService;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -21,7 +22,18 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 
-builder.Host.UseSerilog();
+builder.Host.ConfigureLogging(log => {
+    log.AddSerilog();
+#if !DEBUG
+    log.SetMinimumLevel(LogLevel.Warning);
+#endif
+#if DEBUG
+    log.SetMinimumLevel(LogLevel.Information);
+#endif
+
+
+})
+    .UseSerilog();
 
 builder.Services.AddDbContext<PgContext>(opt =>
 {
@@ -30,12 +42,14 @@ builder.Services.AddDbContext<PgContext>(opt =>
 
 
 builder.Services.AddScoped<ICpuRepo, CpuRepo>();
+builder.Services.AddScoped<ICpuService, CpuService>();
 
 
 builder.Services.AddAutoMapper(prf => {
     prf.AddProfile<CpuMappingProfile>();
 
 } );
+
 
 
 builder.Services.AddTransient<IValidator<DTOCpuCreateModel>, CpuCreateValidation>();

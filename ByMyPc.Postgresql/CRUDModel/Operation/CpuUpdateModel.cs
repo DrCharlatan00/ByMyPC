@@ -24,6 +24,12 @@ namespace ByMyPc.Postgresql.CRUDModel.Operation
 
     public class CpuCreateModel
     {
+        public CpuCreateModel(string name, string socket)
+        {
+            Name = name;
+            Socket = socket;
+        }
+
         public CpuCreateModel(string name, string socket, int frequency, int count_Cores, bool isLive)
         {
             Name = name;

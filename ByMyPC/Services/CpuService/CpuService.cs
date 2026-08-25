@@ -3,10 +3,12 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Hubs;
 using ByMyPC.Models.CpuModels.DTO;
 using ByMyPC.Models.CpuModels.RDTO;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using System.Xml.Linq;
 
 namespace ByMyPC.Services.CpuService
@@ -15,7 +17,8 @@ namespace ByMyPC.Services.CpuService
         IValidator<DTOCpuCreateModel> validatorCreate,
         IValidator<DTOCpuUpdateModel> validatorUpdate,
         IMapper mapper,
-        ILogger<CpuService> logger
+        ILogger<CpuService> logger,
+        IHubContext<CpuHub> hub
         ) : ICpuService
     {
         private readonly ICpuRepo repo = repo;
@@ -23,6 +26,7 @@ namespace ByMyPC.Services.CpuService
         private readonly IValidator<DTOCpuUpdateModel> validatorUpdate = validatorUpdate;
         private readonly IMapper mapper = mapper;
         private readonly ILogger<CpuService> logger = logger;
+        private readonly IHubContext<CpuHub> hub = hub;
 
         public async Task<IEnumerable<RDTOCpuModel>> GetFullCpuAsync(CancellationToken cancellationToken)
         {
@@ -98,7 +102,9 @@ namespace ByMyPC.Services.CpuService
             ArgumentNullException.ThrowIfNull(model);
             await validatorUpdate.ValidateAndThrowAsync(model);
             var result = await repo.UpdateAsync(model.id, Map(model));
-            return result is null ? null : Map(result);
+            if (result is null) return null;
+            await hub.Clients.All.SendAsync("Cpu updated", result.ID);
+            return Map(result);
 
         }
 
@@ -110,6 +116,7 @@ namespace ByMyPC.Services.CpuService
             ArgumentNullException.ThrowIfNull(model);
             await validatorCreate.ValidateAndThrowAsync(model);
             var result = await repo.CreateAsync(Map(model));
+            await hub.Clients.All.SendAsync("Cpu created", result);
             return result;
         }
 
@@ -119,6 +126,7 @@ namespace ByMyPC.Services.CpuService
             logger.LogInformation("Func {func} Get : id: {id}", nameof(RemoveAsync), id);
 #endif
             await repo.RemoveAsync(id);
+            await hub.Clients.All.SendAsync("Cpu removed", id);
         }
 
 

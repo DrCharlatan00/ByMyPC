@@ -15,6 +15,11 @@ namespace ByMyPc.Postgresql.CRUDModel.Operation
             IsLive = isLive;
         }
 
+        public CpuUpdateModel()
+        {
+            
+        }
+
         public string? Name { get; set; }
         public string? Socket { get; set; }
         public int Frequency { get; set; }

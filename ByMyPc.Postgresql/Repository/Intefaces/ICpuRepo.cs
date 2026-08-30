@@ -2,7 +2,7 @@
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 
-namespace ByMyPc.Postgresql.Repository
+namespace ByMyPc.Postgresql.Repository.Intefaces
 {
     public interface ICpuRepo
     {
@@ -14,7 +14,7 @@ namespace ByMyPc.Postgresql.Repository
         IAsyncEnumerable<CpuSmallModel> GetCpuSmallRepoAsyncEnumerable(CancellationToken cancellationToken);
         Task RemoveAsync(Guid id);
         IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameAsyncEnumerable(string name, CancellationToken cancellationToken);
-        IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameAsyncEnumerable(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<(CpuDbModel? updatedModel, string Message)> UpdateAsync(Guid id, CpuUpdateModel model);
+        IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameWithPaginationAsyncEnumerable(string name, int page, int pageSize, CancellationToken cancellationToken);
+        Task<CpuDbModel?> UpdateAsync(Guid id, CpuUpdateModel model);
     }
 }

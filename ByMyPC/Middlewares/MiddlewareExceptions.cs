@@ -1,4 +1,5 @@
 ﻿using ByMyPc.Postgresql.Exceptions;
+using FluentValidation;
 using Microsoft.AspNetCore.Http.Connections;
 using System.Security.Cryptography;
 
@@ -40,6 +41,14 @@ namespace ByMyPC.Middlewares
                     Message = messageUser
                 });
                 return;
+            }
+            catch (Exception ex) when (ex is ValidationException validationException) {
+                httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await httpContext.Response.WriteAsJsonAsync(new
+                {
+                    Message = "Validator fail",
+                    ValidatorError = validationException.Errors
+                });
             }
             catch (Exception ex) {
                 logger.LogError(ex, "Middleware catch exception {@ex}",ex);

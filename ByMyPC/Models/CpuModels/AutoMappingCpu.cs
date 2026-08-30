@@ -48,9 +48,9 @@ namespace ByMyPC.Models.CpuModels
                         )
                 );
 
-            CreateMap<CpuSmallModel, RDTOSmallModel>()
+            CreateMap<CpuSmallModel, RDTOCpuSmallModel>()
                 .ConstructUsing(
-                    x => new RDTOSmallModel(
+                    x => new RDTOCpuSmallModel(
                         x.Name,
                         x.Socket
                         )

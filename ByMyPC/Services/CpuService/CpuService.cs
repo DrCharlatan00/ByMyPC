@@ -51,9 +51,9 @@ namespace ByMyPC.Services.CpuService
             return data is null ? null : Map(data);
         }
 
-        public async Task<IEnumerable<RDTOSmallModel>> GetRDTOSmallModelAsync(CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOCpuSmallModel>> GetRDTOSmallModelAsync(CancellationToken cancellationToken)
         {
-            List<RDTOSmallModel> RDTO = new();
+            List<RDTOCpuSmallModel> RDTO = new();
             await foreach (var item in repo.GetCpuSmallRepoAsyncEnumerable(cancellationToken))
             {
                 RDTO.Add(Map(item));
@@ -61,18 +61,18 @@ namespace ByMyPC.Services.CpuService
             return RDTO;
         }
 
-        public async Task<IEnumerable<RDTOSmallModel>> GetSmallModelsWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOCpuSmallModel>> GetSmallModelsWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken)
         {
             var data = await repo.GetCpuSmallModelsPagination(page, pageSize, cancellationToken);
             return data.Select(Map).ToList();
         }
 
-        public async Task<IEnumerable<RDTOSmallModel>> SearchByNameAsync(string name, CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameAsync(string name, CancellationToken cancellationToken)
         {
 #if DEBUG
             logger.LogInformation("Func {func} Get : name: {name}", nameof(SearchByNameAsync), name);
 #endif
-            List<RDTOSmallModel> RDTO = new();
+            List<RDTOCpuSmallModel> RDTO = new();
             await foreach (var data in repo.SearchCpuSmallByNameAsyncEnumerable(name, cancellationToken))
             {
                 RDTO.Add(Map(data));
@@ -81,12 +81,12 @@ namespace ByMyPC.Services.CpuService
 
         }
 
-        public async Task<IEnumerable<RDTOSmallModel>> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
 #if DEBUG
             logger.LogInformation("Func {func} Get : name: {name} , page: {page} , pageSize: {pageSize}", nameof(SearchByNameWithPaginationAsync), name, page, pageSize);
 #endif
-            List<RDTOSmallModel> RDTO = new();
+            List<RDTOCpuSmallModel> RDTO = new();
             await foreach (var data in repo.SearchCpuSmallByNameWithPaginationAsyncEnumerable(name, page, pageSize, cancellationToken))
             {
                 RDTO.Add(Map(data));
@@ -131,7 +131,7 @@ namespace ByMyPC.Services.CpuService
 
 
         private RDTOCpuModel Map(CpuDbModel model) => mapper.Map<RDTOCpuModel>(model);
-        private RDTOSmallModel Map(CpuSmallModel model) => mapper.Map<RDTOSmallModel>(model);
+        private RDTOCpuSmallModel Map(CpuSmallModel model) => mapper.Map<RDTOCpuSmallModel>(model);
         private CpuUpdateModel Map(DTOCpuUpdateModel model) => mapper.Map<CpuUpdateModel>(model);
         private CpuCreateModel Map(DTOCpuCreateModel model) => mapper.Map<CpuCreateModel>(model);
 

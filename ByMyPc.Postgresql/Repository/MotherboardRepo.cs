@@ -2,6 +2,7 @@
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
+using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -11,24 +12,27 @@ using System.Text;
 
 namespace ByMyPc.Postgresql.Repository
 {
-    public class MotherboardRepo(PgContext context)
+    public class MotherboardRepo(PgContext context) : IMotherboardRepo
     {
         private readonly PgContext context = context;
 
-        public async IAsyncEnumerable<MotherboardSmallDbModel> GetCardMotherboardDbAsync([EnumeratorCancellation] CancellationToken cancellationToken) {
-            await foreach (var item in context.Motherboards.AsNoTracking().Select(u => new MotherboardSmallDbModel(u.Name,u.Socket,u.IsLive)).AsAsyncEnumerable().WithCancellation(cancellationToken))
+        public async IAsyncEnumerable<MotherboardSmallDbModel> GetCardMotherboardDbAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var item in context.Motherboards.AsNoTracking().Select(u => new MotherboardSmallDbModel(u.Name, u.Socket, u.IsLive)).AsAsyncEnumerable().WithCancellation(cancellationToken))
             {
                 yield return item;
             }
         }
-        public async IAsyncEnumerable<MotherboardDbModel> GetFullMotherboardDbAsync([EnumeratorCancellation] CancellationToken cancellationToken) {
-            await foreach (var item in context.Motherboards.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken)) 
+        public async IAsyncEnumerable<MotherboardDbModel> GetFullMotherboardDbAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var item in context.Motherboards.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken))
             {
                 yield return item;
             }
         }
 
-        public async Task<IEnumerable<MotherboardSmallDbModel>> GetCardWithPaginationAsync(int page,int pageSize, CancellationToken cancellationToken) {
+        public async Task<IEnumerable<MotherboardSmallDbModel>> GetCardWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken)
+        {
             return await context.Motherboards.AsNoTracking()
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -37,7 +41,8 @@ namespace ByMyPc.Postgresql.Repository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<MotherboardDbModel?> GetByIDAsync(Guid id) {
+        public async Task<MotherboardDbModel?> GetByIDAsync(Guid id)
+        {
             return await context.Motherboards.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.ID == id);
         }
@@ -50,17 +55,18 @@ namespace ByMyPc.Postgresql.Repository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<MotherboardSmallDbModel>> SearchByNameMotherboardSmallWithPaginationAsync(string name,int page, int pageSize, CancellationToken cancellationToken)
+        public async Task<IEnumerable<MotherboardSmallDbModel>> SearchByNameMotherboardSmallWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
             return await context.Motherboards.AsNoTracking()
                 .Where(x => x.Name.Contains(name))
-                .Skip((page - 1 ) * pageSize)
+                .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(u => new MotherboardSmallDbModel(u.Name, u.Socket, u.IsLive))
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<MotherboardDbModel?> UpdateAsync(MotherboardUpdateModel model) {
+        public async Task<MotherboardDbModel?> UpdateAsync(MotherboardUpdateModel model)
+        {
             try
             {
                 MotherboardDbModel? old = await context.Motherboards.FirstOrDefaultAsync(x => x.ID == model.ID);
@@ -71,12 +77,14 @@ namespace ByMyPc.Postgresql.Repository
                 await context.SaveChangesAsync();
                 return old;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new UpdateOperationException<MotherboardDbModel>(ex.Message, ex);
             }
         }
 
-        public async Task<Guid> CreateAsync(MotherboardCreateModel model) {
+        public async Task<Guid> CreateAsync(MotherboardCreateModel model)
+        {
             try
             {
                 MotherboardDbModel newModel = new();
@@ -93,12 +101,14 @@ namespace ByMyPc.Postgresql.Repository
                 await context.SaveChangesAsync();
                 return newModel.ID;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new CreateOperationException<MotherboardCreateModel>(ex.Message, ex);
             }
         }
 
-        public async Task RemoveAsync(Guid id) {
+        public async Task RemoveAsync(Guid id)
+        {
             try
             {
                 MotherboardDbModel? model = await context.Motherboards.FirstOrDefaultAsync(x => x.ID == x.ID);

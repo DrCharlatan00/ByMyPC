@@ -35,7 +35,7 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">Default param</param>
         /// <returns>full collection Motherboard</returns>
         /// <remarks>Do not use if you do not want to get all the information accurately, otherwise you will create unnecessary overload</remarks>
-        [HttpGet("Full")]
+        [HttpGet("full")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOModelMotherboard>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetFull(CancellationToken cancellationToken) {
@@ -65,7 +65,7 @@ namespace ByMyPC.Controllers
         /// <returns>Card collection motherboard</returns>
         [HttpGet("card-pag")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOModelMotherboardCard>))]
-        public async Task<IActionResult> GetCardWithPag(int page,int pageSize,CancellationToken cancellationToken)
+        public async Task<IActionResult> GetCardWithPag([FromQuery] int page,[FromQuery] int pageSize,CancellationToken cancellationToken)
         {
             var data = await service.GetCardWithPaginationAsync(page,pageSize,cancellationToken);
             return Ok(data);
@@ -80,7 +80,7 @@ namespace ByMyPC.Controllers
         [HttpGet("search-name")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOModelMotherboardCard>))]
 
-        public async Task<IActionResult> SearchByName(string name, CancellationToken cancellationToken) {
+        public async Task<IActionResult> SearchByName([FromQuery] string name, CancellationToken cancellationToken) {
             var data = await service.SearchByNameAsync(name,cancellationToken);
             return Ok(data);
         }
@@ -96,7 +96,7 @@ namespace ByMyPC.Controllers
         [HttpGet("search-name-pag")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOModelMotherboardCard>))]
 
-        public async Task<IActionResult> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken)
+        public async Task<IActionResult> SearchByNameWithPag([FromQuery] string name, [FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
         {
             var data = await service.SearchByNameWithPaginationAsync(name,page,pageSize, cancellationToken);
             return Ok(data);
@@ -110,9 +110,9 @@ namespace ByMyPC.Controllers
         /// <remarks>Do not fotgot hand over id in model </remarks>
 
         [HttpPut]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOModelMotherboard>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RDTOModelMotherboard))]
 
-        public async Task<IActionResult> Update(DTOMotherboardUpdateModel model) {
+        public async Task<IActionResult> Update([FromBody] DTOMotherboardUpdateModel model) {
             RDTOModelMotherboard? result = await service.UpdateAsync(model);
             return result is not null ? Ok(result) : Problem(detail: "Unexpect you model not update, check data in model");
         }
@@ -124,9 +124,10 @@ namespace ByMyPC.Controllers
         /// <returns>Guid new model</returns>
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
-        public async Task<IActionResult> Create(DTOMotherboardCreateModel model)
+        public async Task<IActionResult> Create([FromBody] DTOMotherboardCreateModel model)
         {
-            return Ok(service.CreateAsync(model));    
+            Guid id = await service.CreateAsync(model);
+            return Ok(id);    
         }
 
         /// <summary>
@@ -136,7 +137,7 @@ namespace ByMyPC.Controllers
         /// <returns>Ok)</returns>
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> Remove(Guid id) {
+        public async Task<IActionResult> Remove([FromQuery]Guid id) {
             await service.RemoveAsync(id);
             return Ok();
         }

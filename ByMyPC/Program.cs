@@ -5,7 +5,10 @@ using ByMyPC.Hubs;
 using ByMyPC.Middlewares;
 using ByMyPC.Models.CpuModels;
 using ByMyPC.Models.CpuModels.DTO;
+using ByMyPC.Models.MotherbordModels;
+using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Services.CpuService;
+using ByMyPC.Services.MotherboardService;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -62,10 +65,15 @@ builder.Services.AddHealthChecks().AddNpgSql(
 builder.Services.AddScoped<ICpuRepo, CpuRepo>();
 builder.Services.AddScoped<ICpuService, CpuService>();
 
+builder.Services.AddScoped<IMotherboardRepo, MotherboardRepo>();
+builder.Services.AddScoped<IMotherboardService, MotherboardService>();
+
+
 
 #region Mappers and Validators
 builder.Services.AddAutoMapper(prf => {
     prf.AddProfile<CpuMappingProfile>();
+    prf.AddProfile<MotherboardMappingClass>();
 
 } );
 
@@ -73,6 +81,9 @@ builder.Services.AddAutoMapper(prf => {
 
 builder.Services.AddTransient<IValidator<DTOCpuCreateModel>, CpuCreateValidation>();
 builder.Services.AddTransient<IValidator<DTOCpuUpdateModel>, CpuUpdateValidation>();
+
+builder.Services.AddTransient<IValidator<DTOMotherboardCreateModel>, MotherboardCreateValidator>();
+builder.Services.AddTransient<IValidator<DTOMotherboardUpdateModel>, MotherboardUpdateValidator>();
 #endregion
 
 var app = builder.Build();

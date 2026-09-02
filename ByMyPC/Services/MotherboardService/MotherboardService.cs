@@ -3,12 +3,14 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Caching;
 using ByMyPC.Hubs;
 using ByMyPC.Models.CpuModels.RDTO;
 using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.MotherbordModels.RDTO;
 using FluentValidation;
 using Microsoft.AspNetCore.SignalR;
+using System.Xml.Linq;
 
 namespace ByMyPC.Services.MotherboardService
 {
@@ -18,7 +20,8 @@ namespace ByMyPC.Services.MotherboardService
         IValidator<DTOMotherboardUpdateModel> validatorUpdate,
         IMapper mapper,
         ILogger<MotherboardService> logger,
-        IHubContext<MotherboardHub> hub
+        IHubContext<MotherboardHub> hub,
+        ICacheService cacheService
         ) : IMotherboardService
     {
         private readonly IMotherboardRepo repo = repo;
@@ -27,6 +30,7 @@ namespace ByMyPC.Services.MotherboardService
         private readonly IMapper mapper = mapper;
         private readonly ILogger<MotherboardService> logger = logger;
         private readonly IHubContext<MotherboardHub> hub = hub;
+        private readonly ICacheService cacheService = cacheService;
 
         #region Get
         public async Task<IEnumerable<RDTOModelMotherboardCard>> GetCardMotherboardAsync(CancellationToken cancellationToken)
@@ -57,8 +61,31 @@ namespace ByMyPC.Services.MotherboardService
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> GetCardWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken)
         {
+            const string keyCacheV = "motherboard:version";
+
+            long version = await cacheService.GetVersionAsync(keyCacheV);
+
+
+            string key = $"motherboard:v{version}:page={page}:page_size={pageSize}";
+
+            var cache = await cacheService.GetAsync<IEnumerable<RDTOModelMotherboardCard>>(key);
+
+
+            if (cache is not null)
+            {
+                return cache;
+            }
+
             var data = await repo.GetCardWithPaginationAsync(page, pageSize, cancellationToken);
-            return data != null ? data.Select(Map).ToList() : null;
+
+            if (data is null) return null;
+
+
+            var rdto = data.Select(Map).ToList();
+
+            await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
+            return rdto;
+
         }
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> SearchByNameAsync(string name, CancellationToken cancellationToken)
@@ -69,8 +96,26 @@ namespace ByMyPC.Services.MotherboardService
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
+            const string keyCacheV = "motherboard:version";
+
+            long version = await cacheService.GetVersionAsync(keyCacheV);
+
+            string key = $"motherboard:v{version}:name={name}:page={page}:page_size={pageSize}";
+
+            var cache = await cacheService.GetAsync<IEnumerable<RDTOModelMotherboardCard>>(key);
+
+            if (cache is not null) {
+                return cache;
+            }
+
             var data = await repo.SearchByNameMotherboardSmallWithPaginationAsync(name, page, pageSize, cancellationToken);
-            return data != null ? data.Select(Map).ToList() : null;
+
+            if (data is null) return null;
+
+            var rdto = data.Select(Map).ToList();
+
+            await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
+            return rdto;
         }
         #endregion
 
@@ -85,6 +130,10 @@ namespace ByMyPC.Services.MotherboardService
                 return null;
             }
             await hub.Clients.All.SendAsync("MotherboardUpdated",res.ID);
+            
+            const string keyCacheV = "motherboard:version";
+            await cacheService.IncrementAsync(keyCacheV);
+            
             return Map(res);
         }
         #endregion
@@ -97,6 +146,10 @@ namespace ByMyPC.Services.MotherboardService
                 await validatorCreate.ValidateAndThrowAsync(model);
                 Guid id = await repo.CreateAsync(Map(model));
                 await hub.Clients.All.SendAsync("NewMotherboardCreated", id);
+                
+                const string keyCacheV = "motherboard:version";
+                await cacheService.IncrementAsync(keyCacheV);
+                
                 return id;
             }
             catch (Exception ex) {
@@ -111,6 +164,11 @@ namespace ByMyPC.Services.MotherboardService
         {
             await repo.RemoveAsync(id);
             await hub.Clients.All.SendAsync("MotherboardRemoved",id);
+
+
+            const string keyCacheV = "motherboard:version";
+            await cacheService.IncrementAsync(keyCacheV);
+
         }
         #endregion
 

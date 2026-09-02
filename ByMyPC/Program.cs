@@ -1,6 +1,7 @@
 using ByMyPc.Postgresql;
 using ByMyPc.Postgresql.Repository;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Caching;
 using ByMyPC.Hubs;
 using ByMyPC.Middlewares;
 using ByMyPC.Models.CpuModels;
@@ -13,6 +14,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +55,15 @@ builder.Services.AddDbContext<PgContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("postgresMainDb") ?? throw new ArgumentNullException("Connection string is null"));
 });
 
+builder.Services.AddStackExchangeRedisCache(opt => {
+    opt.InstanceName = "ByMyPcCache";
+    opt.Configuration = builder.Configuration.GetConnectionString("RedisMain");
+});
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+        ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisMain")!)
+    );
+
 builder.Services.AddHealthChecks().AddNpgSql(
         builder.Configuration.GetConnectionString("postgresMainDb")!,
         healthQuery: "SELECT 1;",
@@ -60,6 +71,9 @@ builder.Services.AddHealthChecks().AddNpgSql(
         tags: ["db","ready"]
         
     );
+
+
+builder.Services.AddScoped<ICacheService, RedisCacheService>();
 #endregion
 
 builder.Services.AddScoped<ICpuRepo, CpuRepo>();

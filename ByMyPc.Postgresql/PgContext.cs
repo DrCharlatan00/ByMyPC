@@ -35,6 +35,9 @@ namespace ByMyPc.Postgresql
                 .HasForeignKey(x => x.CpuId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+
+            modelBuilder.Entity<CpuDbModel>().HasIndex(x => x.Name).HasMethod("gin").HasOperators("gin_trgm_ops");
+
             //motherboard
             modelBuilder.Entity<PcDbModel>()
                 .HasOne(x => x.Motherboard)

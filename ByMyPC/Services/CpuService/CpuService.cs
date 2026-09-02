@@ -3,6 +3,7 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Caching;
 using ByMyPC.Hubs;
 using ByMyPC.Models.CpuModels.DTO;
 using ByMyPC.Models.CpuModels.RDTO;
@@ -18,7 +19,8 @@ namespace ByMyPC.Services.CpuService
         IValidator<DTOCpuUpdateModel> validatorUpdate,
         IMapper mapper,
         ILogger<CpuService> logger,
-        IHubContext<CpuHub> hub
+        IHubContext<CpuHub> hub,
+        ICacheService cacheService
         ) : ICpuService
     {
         private readonly ICpuRepo repo = repo;
@@ -27,6 +29,7 @@ namespace ByMyPC.Services.CpuService
         private readonly IMapper mapper = mapper;
         private readonly ILogger<CpuService> logger = logger;
         private readonly IHubContext<CpuHub> hub = hub;
+        private readonly ICacheService cacheService = cacheService;
 
         public async Task<IEnumerable<RDTOCpuModel>> GetFullCpuAsync(CancellationToken cancellationToken)
         {
@@ -41,8 +44,22 @@ namespace ByMyPC.Services.CpuService
 
         public async Task<IEnumerable<RDTOCpuModel>> GetFullCpuPagination(int page, int pageSize, CancellationToken cancellationToken)
         {
+            const string keyCacheV = "cpu:version";
+
+            long vers = await cacheService.GetVersionAsync(keyCacheV);
+
+            string key = $"cpu:v{vers}:page={page}:page_size={pageSize}";
+
+            var cache = await cacheService.GetAsync<IEnumerable<RDTOCpuModel>>(key);
+
+            if (cache is not null) return cache;
+
             var data = await repo.GetAsyncPagination(page, pageSize, cancellationToken);
-            return data.Select(Map).ToList();
+            var rdto = data.Select(Map).ToList();
+
+            await cacheService.SetAsync(key,rdto,TimeSpan.FromMinutes(2));
+
+            return rdto;
         }
 
         public async Task<RDTOCpuModel?> GetById(Guid Id)
@@ -63,8 +80,22 @@ namespace ByMyPC.Services.CpuService
 
         public async Task<IEnumerable<RDTOCpuSmallModel>> GetSmallModelsWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken)
         {
+            const string keyCacheV = "cpu:version";
+
+            long vers = await cacheService.GetVersionAsync(keyCacheV);
+
+            string key = $"cpu:v{vers}:page={page}:page_size={pageSize}";
+
+            var cache = await cacheService.GetAsync<IEnumerable<RDTOCpuSmallModel>>(key);
+
+            if (cache is not null) return cache;
+
             var data = await repo.GetCpuSmallModelsPagination(page, pageSize, cancellationToken);
-            return data.Select(Map).ToList();
+            var rdto = data.Select(Map).ToList();
+
+            await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
+
+            return rdto;
         }
 
         public async Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameAsync(string name, CancellationToken cancellationToken)
@@ -72,6 +103,8 @@ namespace ByMyPC.Services.CpuService
 #if DEBUG
             logger.LogInformation("Func {func} Get : name: {name}", nameof(SearchByNameAsync), name);
 #endif
+
+
             List<RDTOCpuSmallModel> RDTO = new();
             await foreach (var data in repo.SearchCpuSmallByNameAsyncEnumerable(name, cancellationToken))
             {
@@ -86,11 +119,24 @@ namespace ByMyPC.Services.CpuService
 #if DEBUG
             logger.LogInformation("Func {func} Get : name: {name} , page: {page} , pageSize: {pageSize}", nameof(SearchByNameWithPaginationAsync), name, page, pageSize);
 #endif
+
+            const string keyCacheV = "cpu:version";
+
+            long vers = await cacheService.GetVersionAsync(keyCacheV);
+
+            string key = $"cpu:v{vers}:name={name}:page={page}:page_size={pageSize}";
+
+            var cache = await cacheService.GetAsync<IEnumerable<RDTOCpuSmallModel>>(key);
+
+            if (cache is not null) return cache;
             List<RDTOCpuSmallModel> RDTO = new();
             await foreach (var data in repo.SearchCpuSmallByNameWithPaginationAsyncEnumerable(name, page, pageSize, cancellationToken))
             {
                 RDTO.Add(Map(data));
             }
+
+            await cacheService.SetAsync(key, RDTO, TimeSpan.FromMinutes(2));
+
             return RDTO;
         }
 
@@ -103,7 +149,11 @@ namespace ByMyPC.Services.CpuService
             await validatorUpdate.ValidateAndThrowAsync(model);
             var result = await repo.UpdateAsync(model.id, Map(model));
             if (result is null) return null;
-            await hub.Clients.All.SendAsync("Cpu updated", result.ID);
+            await hub.Clients.All.SendAsync("CpuUpdated", result.ID);
+            
+            const string keyCacheV = "cpu:version";
+            await cacheService.IncrementAsync(keyCacheV);
+            
             return Map(result);
 
         }
@@ -116,7 +166,11 @@ namespace ByMyPC.Services.CpuService
             ArgumentNullException.ThrowIfNull(model);
             await validatorCreate.ValidateAndThrowAsync(model);
             var result = await repo.CreateAsync(Map(model));
-            await hub.Clients.All.SendAsync("Cpu created", result);
+            await hub.Clients.All.SendAsync("NewCpuCreated", result);
+
+            const string keyCacheV = "cpu:version";
+            await cacheService.IncrementAsync(keyCacheV);
+
             return result;
         }
 
@@ -126,7 +180,11 @@ namespace ByMyPC.Services.CpuService
             logger.LogInformation("Func {func} Get : id: {id}", nameof(RemoveAsync), id);
 #endif
             await repo.RemoveAsync(id);
-            await hub.Clients.All.SendAsync("Cpu removed", id);
+            await hub.Clients.All.SendAsync("CpuRemoved", id);
+
+            const string keyCacheV = "cpu:version";
+            await cacheService.IncrementAsync(keyCacheV);
+
         }
 
 

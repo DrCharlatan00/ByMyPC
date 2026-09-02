@@ -1,15 +1,20 @@
 using ByMyPc.Postgresql;
 using ByMyPc.Postgresql.Repository;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Caching;
 using ByMyPC.Hubs;
 using ByMyPC.Middlewares;
 using ByMyPC.Models.CpuModels;
 using ByMyPC.Models.CpuModels.DTO;
+using ByMyPC.Models.MotherbordModels;
+using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Services.CpuService;
+using ByMyPC.Services.MotherboardService;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +55,15 @@ builder.Services.AddDbContext<PgContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("postgresMainDb") ?? throw new ArgumentNullException("Connection string is null"));
 });
 
+builder.Services.AddStackExchangeRedisCache(opt => {
+    opt.InstanceName = "ByMyPcCache";
+    opt.Configuration = builder.Configuration.GetConnectionString("RedisMain");
+});
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+        ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisMain")!)
+    );
+
 builder.Services.AddHealthChecks().AddNpgSql(
         builder.Configuration.GetConnectionString("postgresMainDb")!,
         healthQuery: "SELECT 1;",
@@ -57,15 +71,23 @@ builder.Services.AddHealthChecks().AddNpgSql(
         tags: ["db","ready"]
         
     );
+
+
+builder.Services.AddScoped<ICacheService, RedisCacheService>();
 #endregion
 
 builder.Services.AddScoped<ICpuRepo, CpuRepo>();
 builder.Services.AddScoped<ICpuService, CpuService>();
 
+builder.Services.AddScoped<IMotherboardRepo, MotherboardRepo>();
+builder.Services.AddScoped<IMotherboardService, MotherboardService>();
+
+
 
 #region Mappers and Validators
 builder.Services.AddAutoMapper(prf => {
     prf.AddProfile<CpuMappingProfile>();
+    prf.AddProfile<MotherboardMappingClass>();
 
 } );
 
@@ -73,6 +95,9 @@ builder.Services.AddAutoMapper(prf => {
 
 builder.Services.AddTransient<IValidator<DTOCpuCreateModel>, CpuCreateValidation>();
 builder.Services.AddTransient<IValidator<DTOCpuUpdateModel>, CpuUpdateValidation>();
+
+builder.Services.AddTransient<IValidator<DTOMotherboardCreateModel>, MotherboardCreateValidator>();
+builder.Services.AddTransient<IValidator<DTOMotherboardUpdateModel>, MotherboardUpdateValidator>();
 #endregion
 
 var app = builder.Build();
@@ -96,5 +121,6 @@ app.UseMiddleware<MiddlewareExceptions>();
 app.MapControllers();
 
 app.MapHub<CpuHub>("/cpu-hub");
+app.MapHub<MotherboardHub>("/motherboard-hub");
 
 app.Run();

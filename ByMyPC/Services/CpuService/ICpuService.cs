@@ -9,11 +9,11 @@ namespace ByMyPC.Services.CpuService
         Task<RDTOCpuModel?> GetById(Guid Id);
         Task<IEnumerable<RDTOCpuModel>> GetFullCpuAsync(CancellationToken cancellationToken);
         Task<IEnumerable<RDTOCpuModel>> GetFullCpuPagination(int page, int pageSize, CancellationToken cancellationToken);
-        Task<IEnumerable<RDTOSmallModel>> GetRDTOSmallModelAsync(CancellationToken cancellationToken);
-        Task<IEnumerable<RDTOSmallModel>> GetSmallModelsWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken);
+        Task<IEnumerable<RDTOCpuSmallModel>> GetRDTOSmallModelAsync(CancellationToken cancellationToken);
+        Task<IEnumerable<RDTOCpuSmallModel>> GetSmallModelsWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken);
         Task RemoveAsync(Guid id);
-        Task<IEnumerable<RDTOSmallModel>> SearchByNameAsync(string name, CancellationToken cancellationToken);
-        Task<IEnumerable<RDTOSmallModel>> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken);
+        Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameAsync(string name, CancellationToken cancellationToken);
+        Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken);
         Task<RDTOCpuModel?> UpdateAsync(DTOCpuUpdateModel model);
     }
 }

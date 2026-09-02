@@ -20,7 +20,7 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">default param</param>
         /// <returns>collection card Cpu </returns>
         [HttpGet]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOSmallModel>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetCardInfo(CancellationToken cancellationToken) {
             var data = await cpuService.GetRDTOSmallModelAsync(cancellationToken);
@@ -64,7 +64,7 @@ namespace ByMyPC.Controllers
         /// <returns>full information on Cpu </returns>
         /// <remarks>Don't forget to submit the information in the following format "api/cpu/YouId" </remarks>
         [HttpGet("{id:guid}")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOSmallModel>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id) {
             var data = await cpuService.GetById(id);
@@ -79,7 +79,7 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">default param</param>
         /// <returns>collection card Cpu in database with pagination</returns>
         [HttpGet("card-pag")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOSmallModel>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetCardPagination([FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken) {
             var data = await cpuService.GetSmallModelsWithPaginationAsync(page, pageSize, cancellationToken);
@@ -93,7 +93,7 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">default param</param>
         /// <returns>Collection card Cpu's with the desired name</returns>
         [HttpGet("search-name")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOSmallModel>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
         public async Task<IActionResult> SeachByName([FromQuery] string name, CancellationToken cancellationToken) {
             var data = await cpuService.SearchByNameAsync(name, cancellationToken);
             return Ok(data);
@@ -108,7 +108,7 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">default param</param>
         /// <returns>Collection card cpu's with the desired name</returns>
         [HttpGet("search-name-pag")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOSmallModel>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
         public async Task<IActionResult> SeachByNameCardPagination([FromQuery] string name, [FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken) {
             var data = await cpuService.SearchByNameWithPaginationAsync(name,page,pageSize,cancellationToken);
             return Ok(data);
@@ -122,7 +122,7 @@ namespace ByMyPC.Controllers
         /// <returns>Return full updated model</returns>
         /// <remarks>Do not forgot add to model id</remarks>
         [HttpPut]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOSmallModel>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Update([FromBody] DTOCpuUpdateModel model) {
             RDTOCpuModel? result = await cpuService.UpdateAsync(model);

@@ -31,7 +31,7 @@ namespace ByMyPc.IntegrationTesting
 
             Assert.True(request.IsSuccessStatusCode);
 
-            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOSmallModel>>();
+            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
 
             Assert.NotNull(data);
 
@@ -110,7 +110,7 @@ namespace ByMyPc.IntegrationTesting
 
             Assert.True(request.IsSuccessStatusCode);
 
-            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOSmallModel>>();
+            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
 
             Assert.NotNull(data);
 
@@ -142,7 +142,7 @@ namespace ByMyPc.IntegrationTesting
 
                 Assert.True(request.IsSuccessStatusCode);
 
-                var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOSmallModel>>();
+                var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
 
                 Assert.NotNull(data);
 
@@ -186,7 +186,7 @@ namespace ByMyPc.IntegrationTesting
 
                 Assert.True(request.IsSuccessStatusCode);
 
-                var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOSmallModel>>();
+                var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
 
                 Assert.NotNull(data);
                 Assert.Equal("Test", data.First().Name);

@@ -107,5 +107,6 @@ app.UseMiddleware<MiddlewareExceptions>();
 app.MapControllers();
 
 app.MapHub<CpuHub>("/cpu-hub");
+app.MapHub<MotherboardHub>("/motherboard-hub");
 
 app.Run();

@@ -3,10 +3,12 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Hubs;
 using ByMyPC.Models.CpuModels.RDTO;
 using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.MotherbordModels.RDTO;
 using FluentValidation;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ByMyPC.Services.MotherboardService
 {
@@ -15,7 +17,8 @@ namespace ByMyPC.Services.MotherboardService
         IValidator<DTOMotherboardCreateModel> validatorCreate,
         IValidator<DTOMotherboardUpdateModel> validatorUpdate,
         IMapper mapper,
-        ILogger<MotherboardService> logger
+        ILogger<MotherboardService> logger,
+        IHubContext<MotherboardHub> hub
         ) : IMotherboardService
     {
         private readonly IMotherboardRepo repo = repo;
@@ -23,6 +26,7 @@ namespace ByMyPC.Services.MotherboardService
         private readonly IValidator<DTOMotherboardUpdateModel> validatorUpdate = validatorUpdate;
         private readonly IMapper mapper = mapper;
         private readonly ILogger<MotherboardService> logger = logger;
+        private readonly IHubContext<MotherboardHub> hub = hub;
 
         #region Get
         public async Task<IEnumerable<RDTOModelMotherboardCard>> GetCardMotherboardAsync(CancellationToken cancellationToken)
@@ -80,6 +84,7 @@ namespace ByMyPC.Services.MotherboardService
                 logger.LogInformation("Func {func} not update Motherboard with id: {id} \nModel: {@model}", nameof(UpdateAsync), model.id, model);
                 return null;
             }
+            await hub.Clients.All.SendAsync("MotherboardUpdated",res.ID);
             return Map(res);
         }
         #endregion
@@ -91,6 +96,7 @@ namespace ByMyPC.Services.MotherboardService
             {
                 await validatorCreate.ValidateAndThrowAsync(model);
                 Guid id = await repo.CreateAsync(Map(model));
+                await hub.Clients.All.SendAsync("NewMotherboardCreated", id);
                 return id;
             }
             catch (Exception ex) {
@@ -104,6 +110,7 @@ namespace ByMyPC.Services.MotherboardService
         public async Task RemoveAsync(Guid id)
         {
             await repo.RemoveAsync(id);
+            await hub.Clients.All.SendAsync("MotherboardRemoved",id);
         }
         #endregion
 

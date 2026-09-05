@@ -4,11 +4,11 @@ using System.Text;
 
 namespace ByMyPc.Postgresql.CRUDModel.FiltersModels
 {
-    internal class MotherBoardFilterModel
+    public class MotherBoardFilterModel
     {
         public string? ByName { get; set; } = null;
-        public string? ByLive { get; set; } = null;
+        public bool? ByLive { get; set; } = null;
         public string? BySocket { get; set; } = null;
-        public string? ByHaveIntegratedGPU { get; set; } = null;
+        public bool? ByHaveIntegratedGPU { get; set; } = null;
     }
 }

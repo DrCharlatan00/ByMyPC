@@ -55,6 +55,14 @@ namespace ByMyPC.Models.CpuModels
                         x.Socket
                         )
                 );
+            CreateMap<CpuDbModel, RDTOCpuSmallModel>()
+                .ConstructUsing(
+                x => new RDTOCpuSmallModel(
+                        x.Name,
+                        x.Socket
+                        )
+                );
+
             #endregion
         }
     }

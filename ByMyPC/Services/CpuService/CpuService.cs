@@ -114,6 +114,18 @@ namespace ByMyPC.Services.CpuService
 
         }
 
+        public async Task<IEnumerable<RDTOCpuModel>?> GetByFilterAsync(DTOCpuFilter filter,CancellationToken cancellationToken)
+        {
+            var data = await repo.GetByFilterAsync(filter.ConvertToDbFilter(filter),cancellationToken);
+            return data is not null ? data.Select(Map).ToList() : null;
+        }
+
+        public async Task<IEnumerable<RDTOCpuSmallModel>?> GetByFilterWithPagAsync(DTOCpuFilter filter, int page, int pageSize, CancellationToken cancellationToken)
+        {
+            var data = await repo.GetByFilterWithPagAsync(filter.ConvertToDbFilter(filter),page,pageSize, cancellationToken);
+            return data is not null ? data.Select(MapToFull).ToList() : null;
+        }
+
         public async Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
 #if DEBUG
@@ -189,6 +201,8 @@ namespace ByMyPC.Services.CpuService
 
 
         private RDTOCpuModel Map(CpuDbModel model) => mapper.Map<RDTOCpuModel>(model);
+        private RDTOCpuSmallModel MapToFull(CpuDbModel model) => mapper.Map<RDTOCpuSmallModel>(model);
+
         private RDTOCpuSmallModel Map(CpuSmallModel model) => mapper.Map<RDTOCpuSmallModel>(model);
         private CpuUpdateModel Map(DTOCpuUpdateModel model) => mapper.Map<CpuUpdateModel>(model);
         private CpuCreateModel Map(DTOCpuCreateModel model) => mapper.Map<CpuCreateModel>(model);

@@ -1,4 +1,5 @@
-﻿using ByMyPc.Postgresql.CRUDModel.Operation;
+﻿using ByMyPc.Postgresql.CRUDModel.FiltersModels;
+using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 
@@ -16,5 +17,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameAsyncEnumerable(string name, CancellationToken cancellationToken);
         IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameWithPaginationAsyncEnumerable(string name, int page, int pageSize, CancellationToken cancellationToken);
         Task<CpuDbModel?> UpdateAsync(Guid id, CpuUpdateModel model);
+        Task<IEnumerable<CpuDbModel>> GetByFilterWithPagAsync(CPUFilterModel filterModel, int page, int pageSize, CancellationToken cancellationToken);
+        Task<IEnumerable<CpuDbModel>> GetByFilterAsync(CPUFilterModel filterModel, CancellationToken cancellationToken);
     }
 }

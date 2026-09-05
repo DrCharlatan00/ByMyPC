@@ -3,6 +3,7 @@ using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Models.CpuModels.DTO;
 using ByMyPC.Models.CpuModels.RDTO;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
 using Xunit.Abstractions;
@@ -199,6 +200,51 @@ namespace ByMyPc.IntegrationTesting
             {
                 await cpuRepo.RemoveAsync(id);
             }
+
+        }
+
+        [Fact]
+        public async Task TestFilters() {
+            DTOCpuFilter filter = new DTOCpuFilter
+            {
+                ByLive = true,
+                ByName = null,
+                ByQuantityCores = null
+            };
+
+            var result = await httpClient.GetAsync($"/api/cpu/by-filter?ByName={filter.ByName}&ByLive={filter.ByLive}&ByQuantityCores={filter.ByQuantityCores}");
+            if (!result.IsSuccessStatusCode) output.WriteLine(result.ReasonPhrase);
+
+            Assert.True(result.IsSuccessStatusCode);
+
+            IEnumerable<RDTOCpuModel>? data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuModel>>();
+            Assert.NotNull(data);
+            Assert.True(data.First().IsLive);
+
+        }
+
+        [Fact]
+        public async Task TestFiltersWithPagination()
+        {
+            DTOCpuFilter filter = new DTOCpuFilter
+            {
+                ByLive = true,
+                ByName = null,
+                ByQuantityCores = null
+            };
+
+            var result = await httpClient.GetAsync($"/api/cpu/by-filter-pag?ByName={filter.ByName}&ByLive={filter.ByLive}&ByQuantityCores={filter.ByQuantityCores}&page=1&pageSize=1");
+            if (!result.IsSuccessStatusCode) output.WriteLine(result.ReasonPhrase);
+
+            Assert.True(result.IsSuccessStatusCode);
+
+            IEnumerable<RDTOCpuSmallModel>? data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
+            Assert.NotNull(data);
+            //foreach (var item in data)
+            //{
+            //    output.WriteLine($"Item {item.Name}  {item.Socket}");
+            //}
+            
 
         }
 

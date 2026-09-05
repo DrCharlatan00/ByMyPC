@@ -1,6 +1,8 @@
 using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Models.CpuModels.DTO;
+using ByMyPC.Models.CpuModels.RDTO;
 using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.MotherbordModels.RDTO;
 using Microsoft.Extensions.DependencyInjection;
@@ -228,10 +230,66 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
                 output.WriteLine("Test data not removed");
             }
         }
+    }
 
-       
+
+    [Fact]
+    public async Task TestFilters()
+    {
+        DTOMotherboardFilter filter = new DTOMotherboardFilter
+        {
+            ByHaveIntegratedGPU = false,
+            ByLive = false,
+            ByName = null,
+            BySocket = null
+        };
+
+        var result = await httpClient.GetAsync($"/api/motherboard/by-filter?ByName={filter.ByName}&ByLive={filter.ByLive}&BySocket={filter.BySocket}&ByHaveIntegratedGPU={filter.ByHaveIntegratedGPU}");
+        if (!result.IsSuccessStatusCode) output.WriteLine(result.ReasonPhrase);
+
+        Assert.True(result.IsSuccessStatusCode);
+
+        IEnumerable<RDTOModelMotherboard>? data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOModelMotherboard>>();
+        Assert.NotNull(data);
+        Assert.False(data.First().IsLive);
+        //foreach (var item in data)
+        //{
+        //    output.WriteLine($"Item {item.Name}  {item.IsLive}");
+        //}
 
     }
+
+    [Fact]
+    public async Task TestFiltersWithPagination()
+    {
+        DTOMotherboardFilter filter = new DTOMotherboardFilter
+        {
+            ByHaveIntegratedGPU = false,
+            ByLive = false,
+            ByName = null,
+            BySocket = null
+        };
+
+        var result = await httpClient.GetAsync($"/api/cpu/by-filter-pag?ByName={filter.ByName}&ByLive={filter.ByLive}&BySocket={filter.BySocket}&ByHaveIntegratedGPU={filter.ByHaveIntegratedGPU}&page=1&pageSize=1");
+        if (!result.IsSuccessStatusCode) output.WriteLine(result.ReasonPhrase);
+
+        Assert.True(result.IsSuccessStatusCode);
+
+        IEnumerable<RDTOModelMotherboardCard>? data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOModelMotherboardCard>>();
+        Assert.NotNull(data);
+        Assert.False(data.First().IsLive);
+        //foreach (var item in data)
+        //{
+        //    output.WriteLine($"Item {item.Name}  {item.IsLive}");
+        //}
+
+
+    }
+
+
+
+
+
     [Fact]
     public async Task TestUpdateData() {
         Guid guid = Guid.Empty;

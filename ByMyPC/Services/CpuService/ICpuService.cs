@@ -15,5 +15,8 @@ namespace ByMyPC.Services.CpuService
         Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameAsync(string name, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken);
         Task<RDTOCpuModel?> UpdateAsync(DTOCpuUpdateModel model);
+        Task<IEnumerable<RDTOCpuModel>?> GetByFilterAsync(DTOCpuFilter filter, CancellationToken cancellationToken);
+        Task<IEnumerable<RDTOCpuSmallModel>?> GetByFilterWithPagAsync(DTOCpuFilter filter, int page, int pageSize, CancellationToken cancellationToken);
+
     }
 }

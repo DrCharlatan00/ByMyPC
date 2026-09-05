@@ -1,4 +1,5 @@
-﻿using ByMyPc.Postgresql.CRUDModel.Operation;
+﻿using ByMyPc.Postgresql.CRUDModel.FiltersModels;
+using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
@@ -63,6 +64,41 @@ namespace ByMyPc.Postgresql.Repository
                 .Take(pageSize)
                 .Select(u => new MotherboardSmallDbModel(u.Name, u.Socket, u.IsLive))
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IEnumerable<MotherboardDbModel>> GetByFilterAsync(MotherBoardFilterModel filter, CancellationToken cancellationToken) {
+            IQueryable<MotherboardDbModel> query = context.Motherboards.AsNoTracking();
+
+            if (filter.ByName is not null) query = query.Where(x => x.Name.Contains(filter.ByName));
+
+            if (filter.ByLive is not null) query = query.Where(x => x.IsLive == filter.ByLive);
+
+            if (filter.ByHaveIntegratedGPU is not null) query = query.Where(x => x.IntegrationGpu == filter.ByHaveIntegratedGPU);
+
+            if (filter.BySocket is not null) query = query.Where(x => x.Socket.Contains(filter.BySocket));
+
+            return await query.ToListAsync(cancellationToken);
+
+        }
+
+        public async Task<IEnumerable<MotherboardSmallDbModel>> GetByFilterWithPagAsync(MotherBoardFilterModel filter,int page, int pageSize, CancellationToken cancellationToken)
+        {
+            IQueryable<MotherboardDbModel> query = context.Motherboards.AsNoTracking();
+
+            if (filter.ByName is not null) query = query.Where(x => x.Name.Contains(filter.ByName));
+
+            if (filter.ByLive is not null) query = query.Where(x => x.IsLive == filter.ByLive);
+
+            if (filter.ByHaveIntegratedGPU is not null) query = query.Where(x => x.IntegrationGpu == filter.ByHaveIntegratedGPU);
+
+            if (filter.BySocket is not null) query = query.Where(x => x.Socket.Contains(filter.BySocket));
+
+            return await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new MotherboardSmallDbModel(u.Name, u.Socket, u.IsLive))
+                .ToListAsync(cancellationToken);
+
         }
 
         public async Task<MotherboardDbModel?> UpdateAsync(MotherboardUpdateModel model)

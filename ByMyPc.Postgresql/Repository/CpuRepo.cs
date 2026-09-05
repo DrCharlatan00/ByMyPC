@@ -1,4 +1,5 @@
-﻿using ByMyPc.Postgresql.CRUDModel.Operation;
+﻿using ByMyPc.Postgresql.CRUDModel.FiltersModels;
+using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
@@ -64,6 +65,42 @@ namespace ByMyPc.Postgresql.Repository
                 yield return model;
             }
         }
+
+        public async Task<IEnumerable<CpuDbModel>> GetByFilterAsync(CPUFilterModel filterModel,CancellationToken cancellationToken) {
+
+            IQueryable<CpuDbModel> query = context.CPUs.AsNoTracking();
+
+            if (filterModel.ByName is not null)
+                query = query.Where(x => x.Name.Contains(filterModel.ByName));
+
+            if (filterModel.ByQuantityCores is not null) query = query.Where(x => x.Count_Cores == filterModel.ByQuantityCores);
+
+            if (filterModel.ByLive is not null) {
+                query = query.Where(x => x.IsLive == filterModel.ByLive); 
+            }
+            return await query.ToListAsync(cancellationToken);
+        }
+
+
+        public async Task<IEnumerable<CpuDbModel>> GetByFilterWithPagAsync(CPUFilterModel filterModel,int page,int pageSize, CancellationToken cancellationToken)
+        {
+
+            IQueryable<CpuDbModel> query = context.CPUs.AsNoTracking();
+
+            if (filterModel.ByName is not null)
+                query = query.Where(x => x.Name.Contains(filterModel.ByName));
+
+            if (filterModel.ByQuantityCores is not null) query = query.Where(x => x.Count_Cores == filterModel.ByQuantityCores);
+
+            if (filterModel.ByLive is not null)
+                query = query.Where(x => x.IsLive == filterModel.ByLive);
+            
+            return await query.Skip((page - 1) * pageSize)
+                              .Take(pageSize)
+                              .ToListAsync(cancellationToken);
+        }
+
+
 
         public async IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameWithPaginationAsyncEnumerable(string name, int page, int pageSize, [EnumeratorCancellation] CancellationToken cancellationToken)
         {

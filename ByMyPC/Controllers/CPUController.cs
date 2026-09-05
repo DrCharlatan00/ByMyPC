@@ -121,7 +121,9 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">default param</param>
         /// <returns>collecttion full cpus info by filtering</returns>
         [HttpGet("by-filter")]
-        public async Task<IActionResult> GetByFiter([FromBody] DTOCpuFilter filter, CancellationToken cancellationToken) {
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuModel>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetByFiter([FromQuery] DTOCpuFilter filter, CancellationToken cancellationToken) {
             var data = await cpuService.GetByFilterAsync(filter,cancellationToken);
             return data is not null ? Ok(data) : NotFound();
         }
@@ -136,7 +138,9 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet("by-filter-pag")]
-        public async Task<IActionResult> GetByFiterPaginationg([FromBody] DTOCpuFilter filter,[FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetByFiterPaginationg([FromQuery] DTOCpuFilter filter,[FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
         {
             var data = await cpuService.GetByFilterWithPagAsync(filter,page,pageSize,cancellationToken);
             return data is not null ? Ok(data) : NotFound();

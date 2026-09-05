@@ -3,6 +3,7 @@ using ByMyPC.Models.CpuModels.DTO;
 using ByMyPC.Models.CpuModels.RDTO;
 using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.MotherbordModels.RDTO;
+using ByMyPC.Services.CpuService;
 using ByMyPC.Services.MotherboardService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -103,15 +104,46 @@ namespace ByMyPC.Controllers
         }
 
         /// <summary>
+        /// Get collecttion full motherboard's info by filters
+        /// </summary>
+        /// <param name="dto">You can filter by name, live, socket, and the presence of integrated graphics.</param>
+        /// <param name="cancellationToken">Default param</param>
+        /// <returns>collecttion full motherboard's info by filters</returns>
+        [HttpGet("by-filter")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOModelMotherboard>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetByFilter([FromQuery] DTOMotherboardFilter dto, CancellationToken cancellationToken) {
+            IEnumerable<RDTOModelMotherboard>? data = await service.GetByFilterAsync(dto,cancellationToken);
+            return data is not null ? Ok(data) : NotFound();
+        }
+
+
+        /// <summary>
+        /// Get collecttion card motherboard's info by filters
+        /// </summary>
+        /// <param name="filter">You can filter by name, live, socket, and the presence of integrated graphics.</param>
+        /// <param name="page">Current page</param>
+        /// <param name="pageSize">Count items</param>
+        /// <param name="cancellationToken">Default param</param>
+        /// <returns>collecttion card motherboard's info by filters</returns>
+        [HttpGet("by-filter-pag")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOModelMotherboardCard>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetByFiterPaginationg([FromQuery] DTOMotherboardFilter filter, [FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
+        {
+            var data = await service.GetByFilterWithPagAsync(filter, page, pageSize, cancellationToken);
+            return data is not null ? Ok(data) : NotFound();
+        }
+
+
+        /// <summary>
         /// Put method for update motherboard
         /// </summary>
         /// <param name="model">Model new infomation for motherboard</param>
         /// <returns>Updated Motherboard</returns>
         /// <remarks>Do not fotgot hand over id in model </remarks>
-
         [HttpPut]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RDTOModelMotherboard))]
-
         public async Task<IActionResult> Update([FromBody] DTOMotherboardUpdateModel model) {
             RDTOModelMotherboard? result = await service.UpdateAsync(model);
             return result is not null ? Ok(result) : Problem(detail: "Unexpect you model not update, check data in model");

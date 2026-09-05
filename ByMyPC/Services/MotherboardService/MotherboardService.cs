@@ -119,6 +119,18 @@ namespace ByMyPC.Services.MotherboardService
         }
         #endregion
 
+        public async Task<IEnumerable<RDTOModelMotherboard>?> GetByFilterAsync(DTOMotherboardFilter filter, CancellationToken cancellationToken) {
+            var data = await repo.GetByFilterAsync(filter.ConvertToDbFilter(filter),cancellationToken);
+            return data is not null ? data.Select(Map).ToList() : null;
+        }
+
+
+        public async Task<IEnumerable<RDTOModelMotherboardCard>?> GetByFilterWithPagAsync(DTOMotherboardFilter filter,int page, int pageSize, CancellationToken cancellationToken)
+        {
+            var data = await repo.GetByFilterWithPagAsync(filter.ConvertToDbFilter(filter), page, pageSize, cancellationToken);
+            return data is not null ? data.Select(Map).ToList() : null;
+        }
+
         #region Update
         public async Task<RDTOModelMotherboard?> UpdateAsync(DTOMotherboardUpdateModel model)
         {

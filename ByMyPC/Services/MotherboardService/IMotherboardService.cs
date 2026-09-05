@@ -14,5 +14,8 @@ namespace ByMyPC.Services.MotherboardService
         Task<IEnumerable<RDTOModelMotherboardCard>?> SearchByNameAsync(string name, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOModelMotherboardCard>?> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken);
         Task<RDTOModelMotherboard?> UpdateAsync(DTOMotherboardUpdateModel model);
+        Task<IEnumerable<RDTOModelMotherboard>?> GetByFilterAsync(DTOMotherboardFilter filter, CancellationToken cancellationToken);
+        Task<IEnumerable<RDTOModelMotherboardCard>?> GetByFilterWithPagAsync(DTOMotherboardFilter filter, int page, int pageSize, CancellationToken cancellationToken);
+
     }
 }

@@ -141,11 +141,19 @@ namespace ByMyPC.Services.MotherboardService
                 logger.LogInformation("Func {func} not update Motherboard with id: {id} \nModel: {@model}", nameof(UpdateAsync), model.id, model);
                 return null;
             }
-            await hub.Clients.All.SendAsync("MotherboardUpdated",res.ID);
+            var signalR = hub.Clients.All.SendAsync("MotherboardUpdated",res.ID);
             
             const string keyCacheV = "motherboard:version";
-            await cacheService.IncrementAsync(keyCacheV);
-            
+            var Caching =  cacheService.IncrementAsync(keyCacheV);
+
+            try
+            {
+                await Task.WhenAll(Caching,signalR);
+            }
+            catch (Exception ex) {
+                logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
+            }
+
             return Map(res);
         }
         #endregion
@@ -157,11 +165,21 @@ namespace ByMyPC.Services.MotherboardService
             {
                 await validatorCreate.ValidateAndThrowAsync(model);
                 Guid id = await repo.CreateAsync(Map(model));
-                await hub.Clients.All.SendAsync("NewMotherboardCreated", id);
                 
+                var signalR = hub.Clients.All.SendAsync("NewMotherboardCreated", id);
+
                 const string keyCacheV = "motherboard:version";
-                await cacheService.IncrementAsync(keyCacheV);
-                
+                var Caching = cacheService.IncrementAsync(keyCacheV);
+
+                try
+                {
+                    await Task.WhenAll(Caching, signalR);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
+                }
+
                 return id;
             }
             catch (Exception ex) {
@@ -175,11 +193,21 @@ namespace ByMyPC.Services.MotherboardService
         public async Task RemoveAsync(Guid id)
         {
             await repo.RemoveAsync(id);
-            await hub.Clients.All.SendAsync("MotherboardRemoved",id);
 
+            var signalR = hub.Clients.All.SendAsync("MotherboardRemoved",id);
 
             const string keyCacheV = "motherboard:version";
-            await cacheService.IncrementAsync(keyCacheV);
+            var Caching = cacheService.IncrementAsync(keyCacheV);
+
+            try
+            {
+                await Task.WhenAll(Caching, signalR);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
+            }
+
 
         }
         #endregion

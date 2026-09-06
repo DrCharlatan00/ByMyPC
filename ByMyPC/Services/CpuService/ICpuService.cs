@@ -7,7 +7,7 @@ namespace ByMyPC.Services.CpuService
     {
         Task<Guid> CreateAsync(DTOCpuCreateModel model);
         Task<RDTOCpuModel?> GetById(Guid Id);
-        Task<IEnumerable<RDTOCpuModel>> GetFullCpuAsync(CancellationToken cancellationToken);
+        Task<IEnumerable<RDTOCpuModel>?> GetFullCpuAsync(CancellationToken cancellationToken);
         Task<IEnumerable<RDTOCpuModel>> GetFullCpuPagination(int page, int pageSize, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOCpuSmallModel>> GetRDTOSmallModelAsync(CancellationToken cancellationToken);
         Task<IEnumerable<RDTOCpuSmallModel>> GetSmallModelsWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken);

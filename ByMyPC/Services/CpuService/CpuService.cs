@@ -31,7 +31,7 @@ namespace ByMyPC.Services.CpuService
         private readonly IHubContext<CpuHub> hub = hub;
         private readonly ICacheService cacheService = cacheService;
 
-        public async Task<IEnumerable<RDTOCpuModel>> GetFullCpuAsync(CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOCpuModel>?> GetFullCpuAsync(CancellationToken cancellationToken)
         {
             List<RDTOCpuModel> RDTO = new();
             await foreach (var item in repo.GetCpuRepoAsyncEnumerable(cancellationToken))
@@ -161,11 +161,16 @@ namespace ByMyPC.Services.CpuService
             await validatorUpdate.ValidateAndThrowAsync(model);
             var result = await repo.UpdateAsync(model.id, Map(model));
             if (result is null) return null;
-            await hub.Clients.All.SendAsync("CpuUpdated", result.ID);
-            
+            var signalR =  hub.Clients.All.SendAsync("CpuUpdated", result.ID);       
             const string keyCacheV = "cpu:version";
-            await cacheService.IncrementAsync(keyCacheV);
-            
+            var incrementCache = cacheService.IncrementAsync(keyCacheV);
+            try {
+                await Task.WhenAll(incrementCache, signalR);
+            }
+            catch(Exception ex)
+            {
+                logger.LogError(ex,"Redis or SignalR error\n ex message: {mes}",ex.Message);
+            }
             return Map(result);
 
         }
@@ -178,10 +183,18 @@ namespace ByMyPC.Services.CpuService
             ArgumentNullException.ThrowIfNull(model);
             await validatorCreate.ValidateAndThrowAsync(model);
             var result = await repo.CreateAsync(Map(model));
-            await hub.Clients.All.SendAsync("NewCpuCreated", result);
+            var signalR = hub.Clients.All.SendAsync("NewCpuCreated", result);
 
             const string keyCacheV = "cpu:version";
-            await cacheService.IncrementAsync(keyCacheV);
+            var incrementCache = cacheService.IncrementAsync(keyCacheV);
+            try
+            {
+                await Task.WhenAll(incrementCache, signalR);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
+            }
 
             return result;
         }
@@ -192,10 +205,18 @@ namespace ByMyPC.Services.CpuService
             logger.LogInformation("Func {func} Get : id: {id}", nameof(RemoveAsync), id);
 #endif
             await repo.RemoveAsync(id);
-            await hub.Clients.All.SendAsync("CpuRemoved", id);
+            var signalR = hub.Clients.All.SendAsync("CpuRemoved", id);
 
             const string keyCacheV = "cpu:version";
-            await cacheService.IncrementAsync(keyCacheV);
+            var incrementCache = cacheService.IncrementAsync(keyCacheV);
+            try
+            {
+                await Task.WhenAll(incrementCache, signalR);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
+            }
 
         }
 

@@ -11,6 +11,7 @@ namespace ByMyPc.Postgresql.Exceptions
         string NameCollection { get; }
     }
 
+
     public class RemoveOperationException<TCollection> : Exception, IOperationException where TCollection : class
     {
         public TCollection collection;

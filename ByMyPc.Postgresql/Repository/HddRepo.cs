@@ -182,7 +182,7 @@ namespace ByMyPc.Postgresql.Repository
                 var PC = await context.PCs.AsNoTracking().FirstOrDefaultAsync(x => x.ID == PcId);
                 if (PC is null) {
                     await transaction.RollbackAsync();
-                    throw new OperationsException<PcDbModel>("Pc is not found, Attaching is abort");
+                    throw new OperationsException<PcDbModel>("Pc is not found, Attaching is abort",true);
                 }
                 try
                 {
@@ -191,14 +191,14 @@ namespace ByMyPc.Postgresql.Repository
                 }
                 catch (Exception ex) {
                     await transaction.RollbackAsync();
-                    throw new OperationsException<PcHddDbModel>("Can't attach hdd to pc, Create and Attaching is aborted",ex);
+                    throw new OperationsException<PcHddDbModel>("Can't attach hdd to pc, Create and Attaching is aborted",false,ex);
                 }
                 await transaction.CommitAsync();
                 return newModel.ID;
             }
             catch (Exception ex) {
                 await transaction.RollbackAsync();
-                throw new OperationsException<object>("Error when create or add to pc,Create and Attaching is aborted", ex);
+                throw new OperationsException<object>("Error when create or add to pc,Create and Attaching is aborted",false, ex);
             }
         }
         #endregion

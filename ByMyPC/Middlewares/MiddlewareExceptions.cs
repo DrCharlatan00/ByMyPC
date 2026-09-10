@@ -17,11 +17,17 @@ namespace ByMyPC.Middlewares
             {
                 await requestDelegate(httpContext);
             }
+            catch (Exception ex) when (ex is OperationsException<object> ecx) {
+                logger.LogError(ex,"Operations aborted {exmess}\n SystemFall?:{bq}", ex.Message,ecx.BadRq);
+                messageUser = ecx.BadRq ? "Operation cancelled. The database rejected your data. " : "Server unexpect abord operation, Please contact to Administrator";
+                StatusCode = ecx.BadRq ? StatusCodes.Status400BadRequest : StatusCodes.Status500InternalServerError;
+            }
             catch (Exception ex) when (ex is IOperationException exs)
             {
 
                 logger.LogError(ex, "Middleware catch exception \nCollecion = {collname} \nTypeCollection = {@type}", exs.NameCollection, exs.CollectionThrow);
-                messageUser = ex switch {
+                messageUser = ex switch
+                {
                     CreateOperationException<object> => "Create operation is failed",
                     RemoveOperationException<object> => "Remove operation is failed",
                     UpdateOperationException<object> => "Update operation is failed",
@@ -42,7 +48,8 @@ namespace ByMyPC.Middlewares
                 });
                 return;
             }
-            catch (Exception ex) when (ex is ValidationException validationException) {
+            catch (Exception ex) when (ex is ValidationException validationException)
+            {
                 httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await httpContext.Response.WriteAsJsonAsync(new
                 {
@@ -50,8 +57,9 @@ namespace ByMyPC.Middlewares
                     ValidatorError = validationException.Errors
                 });
             }
-            catch (Exception ex) {
-                logger.LogError(ex, "Middleware catch exception {@ex}",ex);
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Middleware catch exception {@ex}", ex);
                 messageUser = ex switch
                 {
                     ArgumentNullException => "Invalid parameter received, parameter is null",
@@ -60,7 +68,8 @@ namespace ByMyPC.Middlewares
                     IOperationException => "The database is temporarily unavailable due to internal reasons.",
                     _ => "Unknown error in server, please call administrator"
                 };
-                StatusCode = ex switch {
+                StatusCode = ex switch
+                {
                     ArgumentNullException => StatusCodes.Status400BadRequest,
                     ArgumentException => StatusCodes.Status400BadRequest,
                     NullReferenceException => StatusCodes.Status500InternalServerError,

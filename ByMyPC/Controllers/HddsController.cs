@@ -1,10 +1,12 @@
 ﻿using ByMyPC.Models.HDDModels.DTO;
+using ByMyPC.Models.HDDModels.RDTO;
 using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.MotherbordModels.RDTO;
 using ByMyPC.Services.HDDService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.FileProviders;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ByMyPC.Controllers
 {
@@ -71,7 +73,7 @@ namespace ByMyPC.Controllers
         /// <returns>Collection full info HDD's</returns>
         [HttpGet("search-name")]
         public async Task<IActionResult> SearchByName([FromQuery] string name, CancellationToken cancellationToken) {
-            var data = await service.SearchByName(name, cancellationToken);
+            IEnumerable<RDTOHDDModel>? data = await service.SearchByName(name, cancellationToken);
             return Ok(data);
         }
 
@@ -97,8 +99,9 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">Default param</param>
         /// <returns>collecttion full HDD's info by filters</returns>
         [HttpGet("by-filter")]
+        [Experimental("NOT_PASS_TEST")]
         public async Task<IActionResult> GetByFilter(DTOHDDFilter filter, CancellationToken cancellationToken) {
-            var data = await service.GetByFilter(filter,cancellationToken);
+            IEnumerable<RDTOHDDModel>? data = await service.GetByFilter(filter,cancellationToken);
             return data is not null ? Ok(data) : NotFound();
         }
 
@@ -111,8 +114,7 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">Default param</param>
         /// <returns>collecttion card HDD's info by filters</returns>
         [HttpGet("by-filter-pag")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOModelMotherboardCard>))]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Experimental("NOT_PASS_TEST")]
         public async Task<IActionResult> GetByFiterPagination([FromQuery] DTOHDDFilter filter, [FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
         {
             var data = await service.GetCardByFilterWithPag(filter,page,pageSize, cancellationToken);
@@ -182,6 +184,7 @@ namespace ByMyPC.Controllers
         /// <param name="IdPc">ID of the computer to which you want to attach the disk</param>
         /// <returns>Ok or BadRequest</returns>
         [HttpPut("attach")]
+        [Experimental("NOT_TESTED")]
         public async Task<IActionResult> Attach([FromQuery] Guid idHdd, [FromQuery] Guid IdPc) {
             bool result = await service.AttachHdd(IdPc, idHdd);
             return result == true ? Ok(result) : Problem();
@@ -194,6 +197,7 @@ namespace ByMyPC.Controllers
         /// <param name="IdPc">ID of the computer to which you want to Deattach the disk</param>
         /// <returns></returns>
         [HttpPut("deattach")]
+        [Experimental("NOT_TESTED")]
         public async Task<IActionResult> Deattach([FromQuery] Guid idHdd, [FromQuery] Guid IdPc)
         {
             bool result = await service.DeattachHdd(IdPc, idHdd);

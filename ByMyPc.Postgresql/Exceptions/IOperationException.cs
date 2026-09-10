@@ -97,23 +97,27 @@ namespace ByMyPc.Postgresql.Exceptions
         public Type? CollectionThrow { get; }
         public string NameCollection { get; }
         public TCollection collection;
+        public bool BadRq = false;
 
-        public OperationsException()
+        public OperationsException(bool badRq)
         {
             CollectionThrow = collection?.GetType();
             NameCollection = collection?.GetType()?.FullName ?? "Collection name unknown";
+            BadRq = badRq;
         }
 
-        public OperationsException(string? message) : base(message)
+        public OperationsException(string? message, bool badRq) : base(message)
         {
             CollectionThrow = collection?.GetType();
             NameCollection = collection?.GetType()?.FullName ?? "Collection name unknown";
+            BadRq = badRq;
         }
 
-        public OperationsException(string? message, Exception? innerException) : base(message, innerException)
+        public OperationsException(string? message, bool badRq, Exception? innerException) : base(message, innerException)
         {
             CollectionThrow = collection?.GetType();
             NameCollection = collection?.GetType()?.FullName ?? "Collection name unknown";
+            BadRq = badRq;
         }
     }
     #endregion

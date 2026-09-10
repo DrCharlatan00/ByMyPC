@@ -1,4 +1,5 @@
-﻿using ByMyPc.Postgresql.Models;
+﻿using ByMyPc.Postgresql.Exceptions;
+using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -20,6 +21,12 @@ namespace ByMyPc.Postgresql.Repository
             var PC = await context.PCs.AsNoTracking().FirstOrDefaultAsync(x => x.ID == PcId);
             if (PC is null) return false;
 
+            bool IsAttached = await context.PcHdds.AsNoTracking().FirstOrDefaultAsync(x => x.HddId == HDDId) is not null ? true : false;
+
+            if (IsAttached) {
+                throw new OperationsException<HDDDbModel>("Disk is Attached",true);
+            }
+
             PcHddDbModel newPcHdd = new PcHddDbModel(PcId, HDDId);
             try
             {
@@ -28,7 +35,7 @@ namespace ByMyPc.Postgresql.Repository
             }
             catch (Exception ex)
             {
-                throw new Exception("In Attach HDD to PC operation exception", ex);
+                throw new OperationsException<PcHddDbModel>("In Attach HDD to PC operation exception",false,ex);
             }
             return true;
         }
@@ -51,7 +58,7 @@ namespace ByMyPc.Postgresql.Repository
             }
             catch (Exception ex)
             {
-                throw new Exception("In DeAttach HDD to PC operation exception", ex);
+                throw new OperationsException<PcHddDbModel>("In DeAttach HDD to PC operation exception", false, ex);
             }
             return true;
         }

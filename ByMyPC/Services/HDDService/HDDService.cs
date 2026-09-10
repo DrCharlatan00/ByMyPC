@@ -81,7 +81,7 @@ namespace ByMyPC.Services.HDDService
         public async Task<IEnumerable<RDTOHDDCardModel>?> GetCardByFilterWithPag(DTOHDDFilter filter, int page, int pageSize,CancellationToken cancellationToken)
         {
             HDDFilterModel filterDB = filter.ConvertToDbModel(filter);
-            var result = await repo.GetSmallByFilter(filterDB, cancellationToken);
+            var result = await repo.GetSmallByFilter(filterDB,page,pageSize, cancellationToken);
             return result is not null ? result.Select(Map).ToList() : null;
         }
 

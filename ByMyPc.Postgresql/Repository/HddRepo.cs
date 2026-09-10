@@ -68,7 +68,7 @@ namespace ByMyPc.Postgresql.Repository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<HDDSmallModel>?> GetSmallByFilter(HDDFilterModel filterModel, CancellationToken cancellationToken)
+        public async Task<IEnumerable<HDDSmallModel>?> GetSmallByFilter(HDDFilterModel filterModel,int page,int pageSize, CancellationToken cancellationToken)
         {
             IQueryable<HDDDbModel> query = context.HDDs.AsNoTracking();
 
@@ -78,7 +78,7 @@ namespace ByMyPc.Postgresql.Repository
 
             if (filterModel.Connector is not null) query = query.Where(x => x.connector == filterModel.Connector);
 
-            return await query.Select(x => new HDDSmallModel(x.Name, x.GbSize)).ToListAsync(cancellationToken);
+            return await query.Select(x => new HDDSmallModel(x.Name, x.GbSize)).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         }
 
         public async Task<IEnumerable<HDDDbModel>?> GetByFilter(HDDFilterModel filterModel, CancellationToken cancellationToken)

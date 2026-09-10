@@ -10,13 +10,14 @@ namespace ByMyPC.Services.HDDService
         ValueTask<bool> DeattachHdd(Guid pcId, Guid HddId);
         Task<IEnumerable<RDTOHDDModel>?> GetByFilter(DTOHDDFilter filter, CancellationToken cancellationToken);
         Task<RDTOHDDModel?> GetByIdAsync(Guid id);
-        Task<IEnumerable<RDTOHDDCardModel>?> GetCardByFilter(DTOHDDFilter filter, CancellationToken cancellationToken);
+        Task<IEnumerable<RDTOHDDCardModel>?> GetCardByFilterWithPag(DTOHDDFilter filter, int page, int pageSize, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOHDDCardModel>> GetCardModelsAsync(CancellationToken cancellationToken);
         Task<IEnumerable<RDTOHDDCardModel>> GetCardWithPagination(int page, int pageSize, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOHDDModel>> GetModelsAsync(CancellationToken cancellationToken);
         Task RemoveAsync(Guid id);
         Task<IEnumerable<RDTOHDDModel>?> SearchByName(string name, CancellationToken cancellationToken);
-        Task<IEnumerable<RDTOHDDCardModel>?> SearchByName(string name, int page, int pageSize, CancellationToken cancellationToken);
+        Task<IEnumerable<RDTOHDDCardModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken);
         Task<RDTOHDDModel?> UpdateAsync(DTOHDDUpdateModel model);
+        Task<Guid> CreateAndAttachAsync(DTOHDDCreateModel dto, Guid pcId);
     }
 }

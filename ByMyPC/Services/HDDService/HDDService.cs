@@ -31,7 +31,7 @@ namespace ByMyPC.Services.HDDService
         #region Get
         public async Task<IEnumerable<RDTOHDDCardModel>> GetCardModelsAsync(CancellationToken cancellationToken)
         {
-            List<RDTOHDDCardModel> rdto = new();
+            List<RDTOHDDCardModel> rdto = [];
             await foreach (var item in repo.GetSmallModelsDbAsync(cancellationToken))
             {
                 rdto.Add(Map(item));
@@ -41,7 +41,7 @@ namespace ByMyPC.Services.HDDService
 
         public async Task<IEnumerable<RDTOHDDModel>> GetModelsAsync(CancellationToken cancellationToken)
         {
-            List<RDTOHDDModel> rdto = new();
+            List<RDTOHDDModel> rdto = [];
             await foreach (var item in repo.GetModelsDbAsync(cancellationToken))
             {
                 rdto.Add(Map(item));
@@ -63,7 +63,7 @@ namespace ByMyPC.Services.HDDService
                 logger.LogError("In func {func} get data is null with param page: {page} pageSize: {pagesize}", nameof(GetCardWithPagination), page, pageSize);
                 throw new NullReferenceException("In pag method get null");
             }
-            return data.Select(Map).ToList();
+            return [.. data.Select(Map)];
         }
 
         public async Task<IEnumerable<RDTOHDDModel>?> SearchByName(string name, CancellationToken cancellationToken)
@@ -72,13 +72,13 @@ namespace ByMyPC.Services.HDDService
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
-        public async Task<IEnumerable<RDTOHDDCardModel>?> SearchByName(string name, int page, int pageSize, CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOHDDCardModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
             var data = await repo.SearchByNameWithPag(name, page, pageSize, cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
-        public async Task<IEnumerable<RDTOHDDCardModel>?> GetCardByFilter(DTOHDDFilter filter, CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOHDDCardModel>?> GetCardByFilterWithPag(DTOHDDFilter filter, int page, int pageSize,CancellationToken cancellationToken)
         {
             HDDFilterModel filterDB = filter.ConvertToDbModel(filter);
             var result = await repo.GetSmallByFilter(filterDB, cancellationToken);

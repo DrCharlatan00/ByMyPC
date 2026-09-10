@@ -101,6 +101,8 @@ namespace ByMyPC.Controllers
         [HttpGet("by-filter")]
         [Experimental("NOT_PASS_TEST")]
         public async Task<IActionResult> GetByFilter(DTOHDDFilter filter, CancellationToken cancellationToken) {
+            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
+
             IEnumerable<RDTOHDDModel>? data = await service.GetByFilter(filter,cancellationToken);
             return data is not null ? Ok(data) : NotFound();
         }
@@ -117,6 +119,8 @@ namespace ByMyPC.Controllers
         [Experimental("NOT_PASS_TEST")]
         public async Task<IActionResult> GetByFiterPagination([FromQuery] DTOHDDFilter filter, [FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
         {
+            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
+
             var data = await service.GetCardByFilterWithPag(filter,page,pageSize, cancellationToken);
             return data is not null ? Ok(data) : NotFound();
         }
@@ -155,8 +159,10 @@ namespace ByMyPC.Controllers
         /// <returns>Guid new HDD</returns>
         /// <remarks>If an error occurs during the creation or attachment attempt, the entire operation is rolled back; the method is atomic.</remarks>
         [HttpPost("create-attach")]
+        [Experimental("NOT_TESTED")]
         public async Task<IActionResult> CreateAndAttach([FromBody] DTOHDDCreateModel model,[FromQuery] Guid id)
         {
+            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
             var result = await service.CreateAndAttachAsync(model,id);
             return Ok(result);
         }
@@ -186,6 +192,7 @@ namespace ByMyPC.Controllers
         [HttpPut("attach")]
         [Experimental("NOT_TESTED")]
         public async Task<IActionResult> Attach([FromQuery] Guid idHdd, [FromQuery] Guid IdPc) {
+            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
             bool result = await service.AttachHdd(IdPc, idHdd);
             return result == true ? Ok(result) : Problem();
         }
@@ -200,6 +207,7 @@ namespace ByMyPC.Controllers
         [Experimental("NOT_TESTED")]
         public async Task<IActionResult> Deattach([FromQuery] Guid idHdd, [FromQuery] Guid IdPc)
         {
+            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
             bool result = await service.DeattachHdd(IdPc, idHdd);
             return result == true ? Ok(result) : Problem();
         }

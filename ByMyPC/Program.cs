@@ -6,9 +6,12 @@ using ByMyPC.Hubs;
 using ByMyPC.Middlewares;
 using ByMyPC.Models.CpuModels;
 using ByMyPC.Models.CpuModels.DTO;
+using ByMyPC.Models.HDDModels;
+using ByMyPC.Models.HDDModels.DTO;
 using ByMyPC.Models.MotherbordModels;
 using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Services.CpuService;
+using ByMyPC.Services.HDDService;
 using ByMyPC.Services.MotherboardService;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -82,12 +85,17 @@ builder.Services.AddScoped<ICpuService, CpuService>();
 builder.Services.AddScoped<IMotherboardRepo, MotherboardRepo>();
 builder.Services.AddScoped<IMotherboardService, MotherboardService>();
 
+builder.Services.AddScoped<IHddRepo,HddRepo>();
+builder.Services.AddScoped<IPcHddRepo, PcHddRepo>();
+builder.Services.AddScoped<IHDDService, HDDService>();
+
 
 
 #region Mappers and Validators
 builder.Services.AddAutoMapper(prf => {
     prf.AddProfile<CpuMappingProfile>();
     prf.AddProfile<MotherboardMappingClass>();
+    prf.AddProfile<HDDMappingClass>();
 
 } );
 
@@ -98,6 +106,8 @@ builder.Services.AddTransient<IValidator<DTOCpuUpdateModel>, CpuUpdateValidation
 
 builder.Services.AddTransient<IValidator<DTOMotherboardCreateModel>, MotherboardCreateValidator>();
 builder.Services.AddTransient<IValidator<DTOMotherboardUpdateModel>, MotherboardUpdateValidator>();
+
+builder.Services.AddTransient<IValidator<DTOHDDCreateModel>, ValidatorHDDCreate>();
 #endregion
 
 var app = builder.Build();

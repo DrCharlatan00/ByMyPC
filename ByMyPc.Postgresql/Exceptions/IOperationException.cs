@@ -11,7 +11,7 @@ namespace ByMyPc.Postgresql.Exceptions
         string NameCollection { get; }
     }
 
-
+    #region CRUD
     public class RemoveOperationException<TCollection> : Exception, IOperationException where TCollection : class
     {
         public TCollection collection;
@@ -64,6 +64,7 @@ namespace ByMyPc.Postgresql.Exceptions
         }
     }
 
+
     public class CreateOperationException<TCollection> : Exception, IOperationException where TCollection : class
     {
         public Type? CollectionThrow { get; }
@@ -88,4 +89,32 @@ namespace ByMyPc.Postgresql.Exceptions
             NameCollection = collection?.GetType()?.FullName ?? "Collection name unknown";
         }
     }
+    #endregion
+
+    #region Other Operations
+    public class OperationsException<TCollection> : Exception, IOperationException
+    {
+        public Type? CollectionThrow { get; }
+        public string NameCollection { get; }
+        public TCollection collection;
+
+        public OperationsException()
+        {
+            CollectionThrow = collection?.GetType();
+            NameCollection = collection?.GetType()?.FullName ?? "Collection name unknown";
+        }
+
+        public OperationsException(string? message) : base(message)
+        {
+            CollectionThrow = collection?.GetType();
+            NameCollection = collection?.GetType()?.FullName ?? "Collection name unknown";
+        }
+
+        public OperationsException(string? message, Exception? innerException) : base(message, innerException)
+        {
+            CollectionThrow = collection?.GetType();
+            NameCollection = collection?.GetType()?.FullName ?? "Collection name unknown";
+        }
+    }
+    #endregion
 }

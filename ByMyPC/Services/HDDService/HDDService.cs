@@ -4,10 +4,12 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Hubs;
 using ByMyPC.Models.HDDModels.DTO;
 using ByMyPC.Models.HDDModels.RDTO;
 using FluentValidation;
 using Microsoft.AspNetCore.Routing.Constraints;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging.Configuration;
 
 namespace ByMyPC.Services.HDDService
@@ -16,13 +18,15 @@ namespace ByMyPC.Services.HDDService
                              IPcHddRepo pcHddRepo,
                              IMapper mapper,
                              IValidator<DTOHDDCreateModel> validator,
-                             ILogger<HDDService> logger) : IHDDService
+                             ILogger<HDDService> logger,
+                             IHubContext<HDDHub> hub) : IHDDService
     {
         private readonly IHddRepo repo = repo;
         private readonly IPcHddRepo pcHddRepo = pcHddRepo;
         private readonly IMapper mapper = mapper;
         private readonly IValidator<DTOHDDCreateModel> validator = validator;
         private readonly ILogger<HDDService> logger = logger;
+        private readonly IHubContext<HDDHub> hub = hub;
 
         #region Get
         public async Task<IEnumerable<RDTOHDDCardModel>> GetCardModelsAsync(CancellationToken cancellationToken)
@@ -96,14 +100,18 @@ namespace ByMyPC.Services.HDDService
         {
             HDDUpdateModel updateModel = new HDDUpdateModel(model.id, model.name, model.GbSize, (HddConnector?)model.ConnectorType);
             var result = await repo.UpdateAsync(updateModel);
-            if (result is null)
+            if (result is not  null)
             {
-                logger.LogWarning("In func {func} update db return null with param model: {@model}\nConvertedModel: {@conv}",
-                                  nameof(UpdateAsync),
-                                  model,
-                                  updateModel);
+                var signalR = hub.Clients.All.SendAsync("HDDUpdated", result.ID);
+                await Task.WhenAll(signalR);
+                return  Map(result) ;
+
             }
-            return result is not null ? Map(result) : null;
+            logger.LogWarning("In func {func} update db return null with param model: {@model}\nConvertedModel: {@conv}",
+                  nameof(UpdateAsync),
+                  model,
+                  updateModel);
+            return null;
         }
 
         #endregion
@@ -115,6 +123,21 @@ namespace ByMyPC.Services.HDDService
             await validator.ValidateAndThrowAsync(dto);
             var model = Map(dto);
             Guid id = await repo.CreateAsync(model);
+
+            var signalR = hub.Clients.All.SendAsync("HDDCreated", id);
+            await Task.WhenAll(signalR);
+            
+            return id;
+        }
+
+        public async Task<Guid> CreateAndAttachAsync(DTOHDDCreateModel dto, Guid pcId) {
+            await validator.ValidateAndThrowAsync(dto);
+            var model = Map(dto);
+            Guid id = await repo.CreateAndAttach(model,pcId);
+
+            var signalR = hub.Clients.All.SendAsync("HDDCreated", id);
+            await Task.WhenAll(signalR);
+            
             return id;
         }
         #endregion
@@ -123,6 +146,9 @@ namespace ByMyPC.Services.HDDService
         public async Task RemoveAsync(Guid id)
         {
             await repo.RemoveAsync(id);
+            
+            var signalR = hub.Clients.All.SendAsync("HDDRemoved", id);
+            await Task.WhenAll(signalR);
         }
         #endregion
 

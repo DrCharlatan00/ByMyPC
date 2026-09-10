@@ -19,5 +19,6 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         Task<IEnumerable<HDDDbModel>?> GetByFilter(HDDFilterModel filterModel, CancellationToken cancellationToken);
 
         Task<HDDDbModel?> UpdateAsync(HDDUpdateModel updateModel);
+        Task<Guid> CreateAndAttach(HDDCreateModel model, Guid PcId);
     }
 }

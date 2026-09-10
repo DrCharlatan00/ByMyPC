@@ -5,10 +5,7 @@ using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace ByMyPc.Postgresql.Repository
 {
@@ -157,6 +154,51 @@ namespace ByMyPc.Postgresql.Repository
             catch (Exception ex)
             {
                 throw new RemoveOperationException<HDDDbModel>(ex.Message, ex);
+            }
+        }
+        #endregion
+
+        #region Other Operation
+        public async Task<Guid> CreateAndAttach(HDDCreateModel model, Guid PcId) {
+            var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                HDDDbModel newModel = new HDDDbModel
+                {
+                    ID = Guid.NewGuid(),
+                    Name = model.Name,
+                    GbSize = model.GbSize,
+                    connector = model.connector
+                };
+                try
+                {
+                    await context.HDDs.AddAsync(newModel);
+                    await context.SaveChangesAsync();
+                }
+                catch (Exception ex) {
+                    await transaction.RollbackAsync();
+                    throw new CreateOperationException<HDDCreateModel>("Hdd not create, Create and Attaching is aborted", ex);
+                }
+                var PC = await context.PCs.AsNoTracking().FirstOrDefaultAsync(x => x.ID == PcId);
+                if (PC is null) {
+                    await transaction.RollbackAsync();
+                    throw new OperationsException<PcDbModel>("Pc is not found, Attaching is abort");
+                }
+                try
+                {
+                    await context.PcHdds.AddAsync(new PcHddDbModel(PcId, newModel.ID));
+                    await context.SaveChangesAsync();
+                }
+                catch (Exception ex) {
+                    await transaction.RollbackAsync();
+                    throw new OperationsException<PcHddDbModel>("Can't attach hdd to pc, Create and Attaching is aborted",ex);
+                }
+                await transaction.CommitAsync();
+                return newModel.ID;
+            }
+            catch (Exception ex) {
+                await transaction.RollbackAsync();
+                throw new OperationsException<object>("Error when create or add to pc,Create and Attaching is aborted", ex);
             }
         }
         #endregion

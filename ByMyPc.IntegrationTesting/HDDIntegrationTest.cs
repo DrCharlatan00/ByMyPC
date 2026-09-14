@@ -7,6 +7,7 @@ using ByMyPC.Models.HDDModels.DTO;
 using ByMyPC.Models.HDDModels.RDTO;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens.Experimental;
 using System.Net.Http.Json;
 using Xunit.Abstractions;
 
@@ -340,5 +341,59 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
         Assert.Null(obj);
     }
 
+    [Fact]
+    public async Task TestCreateAndAttach() {
+        
+        DTOHDDCreateModel createModel = new DTOHDDCreateModel("TTTT", 100, ByMyPC.Models.HDDModels.HddConnectorType.SATA);
+        var request = await httpClient.PostAsJsonAsync(
+        $"/api/hdds/create-attach/?id={new Guid("590e5d08-46b0-4e08-bf0a-9c3b7f8afb65")}", createModel);
+
+        Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
+
+        output.WriteLine("Result see in db");
+    }
+
+
+    [Fact]
+    public async Task TestAttach()
+    {
+        var id = await repo.CreateAsync(
+new HDDCreateModel(
+    "Test",
+    100,
+    HddConnector.SATA));
+        DTOHddOperations test = new(new Guid("590e5d08-46b0-4e08-bf0a-9c3b7f8afb65"),id);
+        var request = await httpClient.PutAsJsonAsync(
+        $"/api/hdds/attach/",test);
+
+        Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
+
+        output.WriteLine("Result see in db");
+    }
+
+
+    [Fact]
+    public async Task TestDeAttach()
+    {
+        var id = await repo.CreateAsync(
+new HDDCreateModel(
+    "Test",
+    100,
+    HddConnector.SATA));
+        DTOHddOperations test = new(new Guid("590e5d08-46b0-4e08-bf0a-9c3b7f8afb65"), id);
+        var request = await httpClient.PutAsJsonAsync(
+        $"/api/hdds/attach/", test);
+
+        Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
+
+        var requestDeattach = await httpClient.PutAsJsonAsync(
+$"/api/hdds/deattach/", test);
+
+        Assert.True(requestDeattach.IsSuccessStatusCode, requestDeattach.ReasonPhrase);
+
+
+
+        output.WriteLine("Result see in db");
+    }
 
 }

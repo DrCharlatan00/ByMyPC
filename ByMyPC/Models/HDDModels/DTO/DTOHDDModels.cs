@@ -33,5 +33,7 @@ namespace ByMyPC.Models.HDDModels.DTO
         }
     }
 
+    public record DTOHddOperations(Guid PcId,Guid HddId);
+
 
 }

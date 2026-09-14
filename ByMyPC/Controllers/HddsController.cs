@@ -153,10 +153,8 @@ namespace ByMyPC.Controllers
         /// <returns>Guid new HDD</returns>
         /// <remarks>If an error occurs during the creation or attachment attempt, the entire operation is rolled back; the method is atomic.</remarks>
         [HttpPost("create-attach")]
-        [Experimental("NOT_TESTED")]
         public async Task<IActionResult> CreateAndAttach([FromBody] DTOHDDCreateModel model,[FromQuery] Guid id)
         {
-            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
             var result = await service.CreateAndAttachAsync(model,id);
             return Ok(result);
         }
@@ -180,29 +178,23 @@ namespace ByMyPC.Controllers
         /// <summary>
         /// Put method for Attach HDD to Pc
         /// </summary>
-        /// <param name="idHdd">ID of the disk you want to attach</param>
-        /// <param name="IdPc">ID of the computer to which you want to attach the disk</param>
+        /// <param name="model">ID of the disk you want to attach,ID of the computer to which you want to attach the disk</param>
         /// <returns>Ok or BadRequest</returns>
         [HttpPut("attach")]
-        [Experimental("NOT_TESTED")]
-        public async Task<IActionResult> Attach([FromQuery] Guid idHdd, [FromQuery] Guid IdPc) {
-            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
-            bool result = await service.AttachHdd(IdPc, idHdd);
+        public async Task<IActionResult> Attach([FromBody] DTOHddOperations model) {
+            bool result = await service.AttachHdd(model.PcId, model.HddId);
             return result == true ? Ok(result) : Problem();
         }
 
         /// <summary>
         /// Put method for Deattach HDD to Pc
         /// </summary>
-        /// <param name="idHdd">ID of the disk you want to DeAttach</param>
-        /// <param name="IdPc">ID of the computer to which you want to Deattach the disk</param>
+        /// <param name="model">ID of the disk you want to Deattach,ID of the computer to which you want to Deattach the disk</param>
         /// <returns></returns>
         [HttpPut("deattach")]
-        [Experimental("NOT_TESTED")]
-        public async Task<IActionResult> Deattach([FromQuery] Guid idHdd, [FromQuery] Guid IdPc)
-        {
-            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
-            bool result = await service.DeattachHdd(IdPc, idHdd);
+        public async Task<IActionResult> Deattach([FromBody] DTOHddOperations model)
+         {
+            bool result = await service.DeattachHdd(model.PcId, model.HddId);
             return result == true ? Ok(result) : Problem();
         }
     }

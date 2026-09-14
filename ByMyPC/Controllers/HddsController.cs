@@ -99,10 +99,7 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">Default param</param>
         /// <returns>collecttion full HDD's info by filters</returns>
         [HttpGet("by-filter")]
-        [Experimental("NOT_PASS_TEST")]
-        public async Task<IActionResult> GetByFilter(DTOHDDFilter filter, CancellationToken cancellationToken) {
-            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
-
+        public async Task<IActionResult> GetByFilter([FromQuery] DTOHDDFilter filter, CancellationToken cancellationToken) {
             IEnumerable<RDTOHDDModel>? data = await service.GetByFilter(filter,cancellationToken);
             return data is not null ? Ok(data) : NotFound();
         }
@@ -116,11 +113,8 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">Default param</param>
         /// <returns>collecttion card HDD's info by filters</returns>
         [HttpGet("by-filter-pag")]
-        [Experimental("NOT_PASS_TEST")]
         public async Task<IActionResult> GetByFiterPagination([FromQuery] DTOHDDFilter filter, [FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
         {
-            return StatusCode(501, "This endpoint is experimental and temporarily disabled.");
-
             var data = await service.GetCardByFilterWithPag(filter,page,pageSize, cancellationToken);
             return data is not null ? Ok(data) : NotFound();
         }

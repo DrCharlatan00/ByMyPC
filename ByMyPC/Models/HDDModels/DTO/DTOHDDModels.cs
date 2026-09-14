@@ -6,10 +6,23 @@ namespace ByMyPC.Models.HDDModels.DTO
 {
     public record DTOHDDCreateModel(string name, int GbSize, HddConnectorType ConnectorType);
     public record DTOHDDUpdateModel(Guid id, string? name, int? GbSize, HddConnectorType? ConnectorType);
-    public class DTOHDDFilter(string? Name, int? GbSize, HddConnectorType? Connector) {
-        public string? Name { get; set; } = Name;
-        public int? GbSize { get; set; } = GbSize;
-        public HddConnectorType? Connector { get; set; } = Connector;
+    public class DTOHDDFilter {
+
+        public DTOHDDFilter()
+        {
+            
+        }
+
+        public DTOHDDFilter(string? name, int? gbSize, HddConnectorType? connector)
+        {
+            Name = name;
+            GbSize = gbSize;
+            Connector = connector;
+        }
+
+        public string? Name { get; set; } = null;
+        public int? GbSize { get; set; } = null;
+        public HddConnectorType? Connector { get; set; } = null;
 
         public HDDFilterModel ConvertToDbModel(DTOHDDFilter filter) {
             return new HDDFilterModel(
@@ -19,6 +32,8 @@ namespace ByMyPC.Models.HDDModels.DTO
                 );
         }
     }
+
+    public record DTOHddOperations(Guid PcId,Guid HddId);
 
 
 }

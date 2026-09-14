@@ -58,7 +58,8 @@ builder.Services.AddDbContext<PgContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("postgresMainDb") ?? throw new ArgumentNullException("Connection string is null"));
 });
 
-builder.Services.AddStackExchangeRedisCache(opt => {
+builder.Services.AddStackExchangeRedisCache(opt =>
+{
     opt.InstanceName = "ByMyPcCache";
     opt.Configuration = builder.Configuration.GetConnectionString("RedisMain");
 });

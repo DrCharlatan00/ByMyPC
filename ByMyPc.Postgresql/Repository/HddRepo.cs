@@ -74,7 +74,7 @@ namespace ByMyPc.Postgresql.Repository
 
             if (filterModel.Name is not null) query = query.Where(x => x.Name.Contains(filterModel.Name));
 
-            if (filterModel.GbSize is not null) query = query.Where(x => x.GbSize == x.GbSize);
+            if (filterModel.GbSize is not null) query = query.Where(x => x.GbSize == filterModel.GbSize);
 
             if (filterModel.Connector is not null) query = query.Where(x => x.connector == filterModel.Connector);
 
@@ -87,7 +87,7 @@ namespace ByMyPc.Postgresql.Repository
 
             if (filterModel.Name is not null) query = query.Where(x => x.Name.Contains(filterModel.Name));
 
-            if (filterModel.GbSize is not null) query = query.Where(x => x.GbSize == x.GbSize);
+            if (filterModel.GbSize is not null) query = query.Where(x => x.GbSize == filterModel.GbSize);
 
             if (filterModel.Connector is not null) query = query.Where(x => x.connector == filterModel.Connector);
 

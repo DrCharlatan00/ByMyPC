@@ -26,6 +26,7 @@ namespace ByMyPC.Models.MotherbordModels
             CreateMap<MotherboardSmallDbModel, RDTOModelMotherboardCard>()
                 .ConstructUsing(
                     x => new RDTOModelMotherboardCard(
+                        id: x.ID,
                         Name: x.Name,
                         Socket: x.Socket,
                         IsLive: x.IsLive

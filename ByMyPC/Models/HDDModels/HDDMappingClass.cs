@@ -27,6 +27,7 @@ namespace ByMyPC.Models.HDDModels
             CreateMap<HDDSmallModel, RDTOHDDCardModel>()
                 .ConstructUsing(
                     x => new RDTOHDDCardModel(
+                         id: x.id,
                          Name: x.Name,
                          GbSize: x.GbSize
                         )

@@ -13,6 +13,15 @@ namespace ByMyPc.Postgresql.CRUDModel.SmallModels
             IsLive = isLive;
         }
 
+        public MotherboardSmallDbModel(Guid iD, string name, string socket, bool isLive)
+        {
+            ID = iD;
+            Name = name;
+            Socket = socket;
+            IsLive = isLive;
+        }
+
+        public Guid ID { get; set; }
         public string Name { get; set; } = "N/A";
         public string Socket { get; set; } = "N?A";
         public bool IsLive { get; set; } = false;

@@ -16,7 +16,9 @@ namespace ByMyPc.Postgresql.Repository
         #region Get
         public async IAsyncEnumerable<CpuDbModel> GetCpuRepoAsyncEnumerable([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            await foreach (var item in context.CPUs.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken))
+            await foreach (var item in context.CPUs.AsNoTracking()
+                                                   .AsAsyncEnumerable()
+                                                   .WithCancellation(cancellationToken))
             {
                 yield return item;
             }
@@ -41,7 +43,10 @@ namespace ByMyPc.Postgresql.Repository
         #region SmallModel
         public async IAsyncEnumerable<CpuSmallModel> GetCpuSmallRepoAsyncEnumerable([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            await foreach (var item in context.CPUs.AsNoTracking().Select(x => new CpuSmallModel(x.Name, x.Socket)).AsAsyncEnumerable().WithCancellation(cancellationToken))
+            await foreach (var item in context.CPUs.AsNoTracking()
+                .Select(x => new CpuSmallModel(x.ID, x.Name, x.Socket))
+                .AsAsyncEnumerable()
+                .WithCancellation(cancellationToken))
             {
                 yield return item;
             }
@@ -52,7 +57,7 @@ namespace ByMyPc.Postgresql.Repository
             return await context.CPUs
            .AsNoTracking()
            .OrderBy(x => x.ID)
-           .Select(x => new CpuSmallModel(x.Name, x.Socket))
+           .Select(x => new CpuSmallModel(x.ID, x.Name, x.Socket))
            .Skip((page - 1) * pageSize)
            .Take(pageSize)
            .ToListAsync(cancellationToken);
@@ -60,7 +65,11 @@ namespace ByMyPc.Postgresql.Repository
 
         public async IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameAsyncEnumerable(string name, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            await foreach (var model in context.CPUs.AsNoTracking().Where(x => x.Name == name).Select(x => new CpuSmallModel(x.Name, x.Socket)).AsAsyncEnumerable().WithCancellation(cancellationToken))
+            await foreach (var model in context.CPUs.AsNoTracking()
+                .Where(x => x.Name == name)
+                .Select(x => new CpuSmallModel(x.ID, x.Name, x.Socket))
+                .AsAsyncEnumerable()
+                .WithCancellation(cancellationToken))
             {
                 yield return model;
             }
@@ -104,7 +113,13 @@ namespace ByMyPc.Postgresql.Repository
 
         public async IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameWithPaginationAsyncEnumerable(string name, int page, int pageSize, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            await foreach (var model in context.CPUs.AsNoTracking().Where(x => x.Name == name).Select(x => new CpuSmallModel(x.Name, x.Socket)).Skip((page - 1) * pageSize).Take(pageSize).AsAsyncEnumerable().WithCancellation(cancellationToken))
+            await foreach (var model in context.CPUs.AsNoTracking()
+                                                    .Where(x => x.Name == name)
+                                                    .Select(x => new CpuSmallModel(x.ID, x.Name, x.Socket))
+                                                    .Skip((page - 1) * pageSize)
+                                                    .Take(pageSize)
+                                                    .AsAsyncEnumerable()
+                                                    .WithCancellation(cancellationToken))
             {
                 yield return model;
             }

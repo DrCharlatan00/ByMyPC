@@ -19,7 +19,10 @@ namespace ByMyPc.Postgresql.Repository
 
         public async IAsyncEnumerable<MotherboardSmallDbModel> GetCardMotherboardDbAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            await foreach (var item in context.Motherboards.AsNoTracking().Select(u => new MotherboardSmallDbModel(u.Name, u.Socket, u.IsLive)).AsAsyncEnumerable().WithCancellation(cancellationToken))
+            await foreach (var item in context.Motherboards.AsNoTracking()
+                .Select(u => new MotherboardSmallDbModel(u.ID, u.Name, u.Socket, u.IsLive))
+                .AsAsyncEnumerable()
+                .WithCancellation(cancellationToken))
             {
                 yield return item;
             }
@@ -38,7 +41,7 @@ namespace ByMyPc.Postgresql.Repository
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .OrderBy(x => x.ID)
-                .Select(u => new MotherboardSmallDbModel(u.Name, u.Socket, u.IsLive))
+                .Select(u => new MotherboardSmallDbModel(u.ID, u.Name, u.Socket, u.IsLive))
                 .ToListAsync(cancellationToken);
         }
 
@@ -52,7 +55,7 @@ namespace ByMyPc.Postgresql.Repository
         {
             return await context.Motherboards.AsNoTracking()
                 .Where(x => x.Name.Contains(name))
-                .Select(u => new MotherboardSmallDbModel(u.Name, u.Socket, u.IsLive))
+                .Select(u => new MotherboardSmallDbModel(u.ID, u.Name, u.Socket, u.IsLive))
                 .ToListAsync(cancellationToken);
         }
 
@@ -62,7 +65,7 @@ namespace ByMyPc.Postgresql.Repository
                 .Where(x => x.Name.Contains(name))
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => new MotherboardSmallDbModel(u.Name, u.Socket, u.IsLive))
+                .Select(u => new MotherboardSmallDbModel(u.ID, u.Name, u.Socket, u.IsLive))
                 .ToListAsync(cancellationToken);
         }
 
@@ -96,7 +99,7 @@ namespace ByMyPc.Postgresql.Repository
             return await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => new MotherboardSmallDbModel(u.Name, u.Socket, u.IsLive))
+                .Select(u => new MotherboardSmallDbModel(u.ID, u.Name, u.Socket, u.IsLive))
                 .ToListAsync(cancellationToken);
 
         }

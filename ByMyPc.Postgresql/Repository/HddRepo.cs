@@ -17,7 +17,7 @@ namespace ByMyPc.Postgresql.Repository
         public async IAsyncEnumerable<HDDSmallModel> GetSmallModelsDbAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (HDDSmallModel? item in context.HDDs.AsNoTracking()
-                .Select(x => new HDDSmallModel(x.Name, x.GbSize))
+                .Select(x => new HDDSmallModel(x.ID,x.Name, x.GbSize))
                 .AsAsyncEnumerable()
                 .WithCancellation(cancellationToken))
             {
@@ -45,7 +45,7 @@ namespace ByMyPc.Postgresql.Repository
         public async Task<IEnumerable<HDDSmallModel>> GetSmallModelWithPagination(int page, int pageSize, CancellationToken cancellationToken)
         {
             return await context.HDDs.AsNoTracking()
-                .Select(x => new HDDSmallModel(x.Name, x.GbSize))
+                .Select(x => new HDDSmallModel(x.ID, x.Name, x.GbSize))
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
@@ -62,7 +62,7 @@ namespace ByMyPc.Postgresql.Repository
         {
             return await context.HDDs.AsNoTracking()
                 .Where(x => x.Name.Contains(name))
-                .Select(x => new HDDSmallModel(x.Name, x.GbSize))
+                .Select(x => new HDDSmallModel(x.ID, x.Name, x.GbSize))
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
@@ -78,7 +78,10 @@ namespace ByMyPc.Postgresql.Repository
 
             if (filterModel.Connector is not null) query = query.Where(x => x.connector == filterModel.Connector);
 
-            return await query.Select(x => new HDDSmallModel(x.Name, x.GbSize)).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+            return await query.Select(x => new HDDSmallModel(x.ID, x.Name, x.GbSize))
+                              .Skip((page - 1) * pageSize)
+                              .Take(pageSize)
+                              .ToListAsync(cancellationToken);
         }
 
         public async Task<IEnumerable<HDDDbModel>?> GetByFilter(HDDFilterModel filterModel, CancellationToken cancellationToken)

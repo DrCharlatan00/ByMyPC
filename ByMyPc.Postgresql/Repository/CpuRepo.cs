@@ -66,7 +66,7 @@ namespace ByMyPc.Postgresql.Repository
         public async IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameAsyncEnumerable(string name, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var model in context.CPUs.AsNoTracking()
-                .Where(x => x.Name == name)
+                .Where(x => x.Name.Contains(name))
                 .Select(x => new CpuSmallModel(x.ID, x.Name, x.Socket))
                 .AsAsyncEnumerable()
                 .WithCancellation(cancellationToken))

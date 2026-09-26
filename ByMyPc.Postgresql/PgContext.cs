@@ -20,7 +20,7 @@ namespace ByMyPc.Postgresql
         public DbSet<PcRamDbModel> PcRams { get; set; }
 
         public DbSet<PcHddDbModel> PcHdds { get; set; }
-
+        public DbSet<PSUDbModel> Psu { get; set; }
         public PgContext(DbContextOptions<PgContext> options) : base(options)
         {
             

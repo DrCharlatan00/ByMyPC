@@ -3,6 +3,7 @@ using System;
 using ByMyPc.Postgresql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ByMyPc.Postgresql.Migrations
 {
     [DbContext(typeof(PgContext))]
-    partial class PgContextModelSnapshot : ModelSnapshot
+    [Migration("20260926133850_UpdatePSUModel")]
+    partial class UpdatePSUModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -151,9 +154,6 @@ namespace ByMyPc.Postgresql.Migrations
                     b.Property<bool>("IsModular")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsСertified")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -161,7 +161,7 @@ namespace ByMyPc.Postgresql.Migrations
                     b.Property<int>("PowerWatt")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Size")
+                    b.Property<int>("Siz")
                         .HasColumnType("integer");
 
                     b.HasKey("ID");

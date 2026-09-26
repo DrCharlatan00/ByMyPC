@@ -2,6 +2,7 @@
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
+using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;
@@ -11,7 +12,7 @@ using System.Text;
 
 namespace ByMyPc.Postgresql.Repository
 {
-    public class PSURepo(PgContext context)
+    public class PSURepo(PgContext context) : IPSURepo
     {
         private readonly PgContext context = context;
 
@@ -38,11 +39,13 @@ namespace ByMyPc.Postgresql.Repository
         }
 
 
-        public async Task<PSUDbModel?> GetById(Guid id) {
+        public async Task<PSUDbModel?> GetByIdAsync(Guid id)
+        {
             return await context.Psu.AsNoTracking().FirstOrDefaultAsync(x => x.ID == id);
         }
 
-        public async IAsyncEnumerable<PSUSmallModel> SearchByNameSmallAsyncEnumerable(string name,[EnumeratorCancellation] CancellationToken cancellation) {
+        public async IAsyncEnumerable<PSUSmallModel> SearchByNameSmallAsyncEnumerable(string name, [EnumeratorCancellation] CancellationToken cancellation)
+        {
             await foreach (var item in context.Psu.AsNoTracking()
                                                   .Where(x => x.Name == name)
                                                   .OrderBy(x => x.ID)
@@ -55,7 +58,8 @@ namespace ByMyPc.Postgresql.Repository
 
         }
 
-        public async Task<IEnumerable<PSUSmallModel>> GetSmallModelsAsyncWithPag(int page, int pageSize, CancellationToken cancellation) {
+        public async Task<IEnumerable<PSUSmallModel>> GetSmallModelsAsyncWithPag(int page, int pageSize, CancellationToken cancellation)
+        {
             return await context.Psu.AsNoTracking()
                                     .Skip((page - 1) * pageSize)
                                     .Take(pageSize)
@@ -67,10 +71,11 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Update
-        public async Task<PSUDbModel?> UpdateAsync(PSUUpdateModel model) {
-            
-                var old = await context.Psu.FirstOrDefaultAsync(x => x.ID == model.id);
-                if (old is null) return null;
+        public async Task<PSUDbModel?> UpdateAsync(PSUUpdateModel model)
+        {
+
+            var old = await context.Psu.FirstOrDefaultAsync(x => x.ID == model.id);
+            if (old is null) return null;
             try
             {
                 old.Name = model.Name ?? old.Name;
@@ -80,23 +85,27 @@ namespace ByMyPc.Postgresql.Repository
                 old.IsModular = model.IsModular ?? old.IsModular;
                 old.IsСertified = model.IsCertified ?? old.IsСertified;
             }
-            catch (Exception ex) {
-                throw new UpdateOperationException<PSUUpdateModel>("Can't change params",ex);
+            catch (Exception ex)
+            {
+                throw new UpdateOperationException<PSUUpdateModel>("Can't change params", ex);
             }
             try
             {
                 await context.SaveChangesAsync();
                 return old;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new UpdateOperationException<PSUDbModel>("Update is failed", ex);
             }
 
         }
         #endregion
         #region Create
-        public async Task<Guid> CreateAsync(PSUCreateModel model) {
-            PSUDbModel NewPsu = new PSUDbModel {
+        public async Task<Guid> CreateAsync(PSUCreateModel model)
+        {
+            PSUDbModel NewPsu = new PSUDbModel
+            {
                 ID = Guid.NewGuid(),
                 Name = model.Name,
                 PowerWatt = model.PowerWatt,
@@ -112,14 +121,16 @@ namespace ByMyPc.Postgresql.Repository
                 await context.SaveChangesAsync();
                 return NewPsu.ID;
             }
-            catch (Exception ex) {
-                throw new CreateOperationException<PSUDbModel>("Can't Create Model in db",ex);
+            catch (Exception ex)
+            {
+                throw new CreateOperationException<PSUDbModel>("Can't Create Model in db", ex);
             }
         }
         #endregion
 
         #region Remove
-        public async ValueTask<bool> RemoveAsync(Guid id) {
+        public async ValueTask<bool> RemoveAsync(Guid id)
+        {
             var rm = await context.Psu.FirstOrDefaultAsync(x => x.ID == id);
             if (rm is null) return false;
             try
@@ -128,7 +139,8 @@ namespace ByMyPc.Postgresql.Repository
                 await context.SaveChangesAsync();
                 return true;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new RemoveOperationException<PSUDbModel>("Item not removed", ex);
             }
         }

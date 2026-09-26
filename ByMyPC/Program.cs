@@ -15,6 +15,7 @@ using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Services.CpuService;
 using ByMyPC.Services.HDDService;
 using ByMyPC.Services.MotherboardService;
+using ByMyPC.Services.PSUService;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -92,7 +93,8 @@ builder.Services.AddScoped<IHddRepo,HddRepo>();
 builder.Services.AddScoped<IPcHddRepo, PcHddRepo>();
 builder.Services.AddScoped<IHDDService, HDDService>();
 
-
+builder.Services.AddScoped<IPSURepo, PSURepo>();
+builder.Services.AddScoped<IPSUService, PSUService>();
 
 #region Mappers and Validators
 builder.Services.AddAutoMapper(prf => {

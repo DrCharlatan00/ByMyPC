@@ -22,7 +22,7 @@ namespace ByMyPc.Postgresql.CRUDModel.Operation
             
         }
 
-        public required Guid id { get; set; }
+        public  Guid id { get; set; }
         public string? Name { get; set; }
         public int? PowerWatt { get; set; }
         public bool IsLive { get; set; }

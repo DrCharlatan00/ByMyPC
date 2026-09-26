@@ -6,7 +6,6 @@ using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore.Query;
 
 namespace ByMyPC.Services.PSUService
 {

@@ -1,4 +1,5 @@
-﻿using ByMyPc.Postgresql.CRUDModel.Operation;
+﻿using ByMyPc.Postgresql.CRUDModel.FiltersModels;
+using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
@@ -9,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Xml.Serialization;
 
 namespace ByMyPc.Postgresql.Repository
 {
@@ -58,6 +60,17 @@ namespace ByMyPc.Postgresql.Repository
 
         }
 
+        public async IAsyncEnumerable<PSUDbModel> SearchByNameAsyncEnumerable(string name, [EnumeratorCancellation] CancellationToken cancellationToken) {
+            await foreach (var item in context.Psu.AsNoTracking()
+                                                  .Where(x => x.Name == name)
+                                                  .OrderBy(x => x.ID)
+                                                  .AsAsyncEnumerable()
+                                                  .WithCancellation(cancellationToken))
+            {
+                yield return item;
+            }
+        }
+
         public async Task<IEnumerable<PSUSmallModel>> GetSmallModelsAsyncWithPag(int page, int pageSize, CancellationToken cancellation)
         {
             return await context.Psu.AsNoTracking()
@@ -68,6 +81,53 @@ namespace ByMyPc.Postgresql.Repository
                                     .ToListAsync(cancellation);
         }
 
+        public async Task<IEnumerable<PSUDbModel>> GetFullWithPag(int page, int pageSize, CancellationToken cancellation) {
+            return await context.Psu.AsNoTracking()
+                                   .Skip((page - 1) * pageSize)
+                                   .Take(pageSize)
+                                   .OrderBy(x => x.ID)
+                                   .ToListAsync(cancellation);
+        }
+
+
+        public async Task<IEnumerable<PSUSmallModel>> GetByFilterSmall(PSUFilterModel filterModel, CancellationToken cancellation) {
+            IQueryable<PSUDbModel> query = context.Psu.AsNoTracking();
+
+            if (filterModel.Name is not null) query = query.Where(x => x.Name.Contains(filterModel.Name!));
+
+            if (filterModel.IsModular is not null) query = query.Where(x => x.IsModular == filterModel.IsModular);
+            
+            if (filterModel.IsLive is not null) query = query.Where(x => x.IsLive == filterModel.IsLive);
+
+            if (filterModel.IsСertified is not null) query = query.Where(x => x.IsСertified == filterModel.IsСertified);
+
+            if (filterModel.Size is not null) query = query.Where(x => x.Size == filterModel.Size);
+
+            if (filterModel.PowerWatt is not null) query = query.Where(x => x.PowerWatt == filterModel.PowerWatt);
+
+            return await query.Select(x => new PSUSmallModel(x.ID, x.Name, x.PowerWatt, x.IsLive)).ToListAsync(cancellation);
+
+        }
+
+        public async Task<IEnumerable<PSUDbModel>> GetByFilterFull(PSUFilterModel filterModel, CancellationToken cancellation)
+        {
+            IQueryable<PSUDbModel> query = context.Psu.AsNoTracking();
+
+            if (filterModel.Name is not null) query = query.Where(x => x.Name.Contains(filterModel.Name!));
+
+            if (filterModel.IsModular is not null) query = query.Where(x => x.IsModular == filterModel.IsModular);
+
+            if (filterModel.IsLive is not null) query = query.Where(x => x.IsLive == filterModel.IsLive);
+
+            if (filterModel.IsСertified is not null) query = query.Where(x => x.IsСertified == filterModel.IsСertified);
+
+            if (filterModel.Size is not null) query = query.Where(x => x.Size == filterModel.Size);
+
+            if (filterModel.PowerWatt is not null) query = query.Where(x => x.PowerWatt == filterModel.PowerWatt);
+
+            return await query.ToListAsync(cancellation);
+
+        }
         #endregion
 
         #region Update

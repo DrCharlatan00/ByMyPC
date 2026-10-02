@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using ByMyPc.Postgresql.CRUDModel.FiltersModels;
 using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Models.PSUModels;
 using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using FluentValidation;
@@ -65,6 +67,38 @@ namespace ByMyPC.Services.PSUService
                 logger.LogWarning("Func {func} Return null value\nparam Page: {page}; pageSize: {pagesize}", nameof(GetSmallWithPag), page, pageSize);
             return data?.Select(Map).ToList();
         }
+
+        public async Task<IEnumerable<RDTOPSUModel>> SearchByNameFullAsync(string name, CancellationToken cancellation) {
+            IList<RDTOPSUModel> rdto = new List<RDTOPSUModel>();
+            await foreach (var item in repo.SearchByNameAsyncEnumerable(name,cancellation)) 
+            {
+                rdto.Add(Map(item));
+            }
+            return rdto;
+        }
+
+        public async Task<IEnumerable<RDTOPSUModel>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellation)
+        {
+            var data = await repo.GetFullWithPag(page, pageSize, cancellation);
+            if (data is null)
+                logger.LogWarning("Func {func} Return null value\nparam Page: {page}; pageSize: {pagesize}", nameof(GetSmallWithPag), page, pageSize);
+            return data?.Select(Map).ToList();
+        }
+
+        public async Task<IEnumerable<RDTOPSUSmallModel>> GetByFilterSmall(DTOPSUFilterModel model, CancellationToken cancellationToken)
+        {
+            PSUFilterModel filterDb = Map(model);
+            IEnumerable<PSUSmallModel> data = await repo.GetByFilterSmall(filterDb, cancellationToken);
+            return data.Select(Map).ToList();
+        }
+
+        public async Task<IEnumerable<RDTOPSUModel>> GetByFilterFull(DTOPSUFilterModel model, CancellationToken cancellationToken)
+        {
+            PSUFilterModel filterDb = Map(model);
+            IEnumerable<PSUDbModel> data = await repo.GetByFilterFull(filterDb, cancellationToken);
+            return data.Select(Map).ToList();
+        }
+
         #endregion
 
         #region Update 
@@ -105,7 +139,12 @@ namespace ByMyPC.Services.PSUService
         private RDTOPSUModel Map(PSUDbModel model) => mapper.Map<RDTOPSUModel>(model);
         private RDTOPSUSmallModel Map(PSUSmallModel model) => mapper.Map<RDTOPSUSmallModel>(model);
         private PSUCreateModel Map(DTOPSUModelCreate model) => mapper.Map<PSUCreateModel>(model);
-
+        private PSUFilterModel Map(DTOPSUFilterModel model) => new PSUFilterModel(model.Name,
+                                                                                  model.PowerWatt,
+                                                                                  model.IsLive,
+                                                                                  model.Size,
+                                                                                  model.IsModular,
+                                                                                  model.IsCertified);
         #endregion
     }
 }

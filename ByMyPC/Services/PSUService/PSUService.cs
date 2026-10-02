@@ -5,11 +5,14 @@ using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Caching;
+using ByMyPC.Hubs;
 using ByMyPC.Models.PSUModels;
 using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using FluentValidation;
+using Microsoft.AspNetCore.SignalR;
 using System.Xml.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ByMyPC.Services.PSUService
 {
@@ -18,7 +21,8 @@ namespace ByMyPC.Services.PSUService
             ILogger<PSUService> logger,
             IValidator<DTOPSUModelCreate> validator,
             IMapper mapper,
-            ICacheService cacheService
+            ICacheService cacheService,
+            IHubContext<PSUHub> hub
         ) : IPSUService
     {
 
@@ -27,7 +31,7 @@ namespace ByMyPC.Services.PSUService
         private readonly IValidator<DTOPSUModelCreate> validator = validator;
         private readonly IMapper mapper = mapper;
         private readonly ICacheService cacheService = cacheService;
-
+        private readonly IHubContext<PSUHub> hub = hub;
         const string keyCache = "psu:version";
 
         #region Get
@@ -158,8 +162,11 @@ namespace ByMyPC.Services.PSUService
                 model.IsCertified
                 );
             var data = await repo.UpdateAsync(update);
-            await cacheService.IncrementAsync(keyCache);
-            return data is not null ? Map(data) : null;
+            if (data is null) return null;
+            var caching = cacheService.IncrementAsync(keyCache);
+            var signal = hub.Clients.All.SendAsync("PSUCreated",data.ID);
+            await Task.WhenAll(caching,signal);
+            return Map(data);
         }
         #endregion
 
@@ -168,7 +175,9 @@ namespace ByMyPC.Services.PSUService
         {
             await validator.ValidateAndThrowAsync(model);
             Guid id = await repo.CreateAsync(Map(model));
-            await cacheService.IncrementAsync(keyCache);
+            var caching = cacheService.IncrementAsync(keyCache);
+            var signal = hub.Clients.All.SendAsync("PSUUpdated", id);
+            await Task.WhenAll(caching, signal);
             return id;
         }
         #endregion
@@ -177,7 +186,9 @@ namespace ByMyPC.Services.PSUService
         public async ValueTask<bool> RemoveAsync(Guid id)
         {
             bool isDeleted = await repo.RemoveAsync(id);
-            await cacheService.IncrementAsync(keyCache);
+            var caching = cacheService.IncrementAsync(keyCache);
+            var signal = hub.Clients.All.SendAsync("PSUDeleted");
+            await Task.WhenAll(caching, signal);
             return isDeleted;
         }
         #endregion 

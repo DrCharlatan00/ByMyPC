@@ -4,10 +4,12 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Caching;
 using ByMyPC.Models.PSUModels;
 using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using FluentValidation;
+using System.Xml.Linq;
 
 namespace ByMyPC.Services.PSUService
 {
@@ -15,13 +17,18 @@ namespace ByMyPC.Services.PSUService
             IPSURepo repo,
             ILogger<PSUService> logger,
             IValidator<DTOPSUModelCreate> validator,
-            IMapper mapper
+            IMapper mapper,
+            ICacheService cacheService
         ) : IPSUService
     {
+
         private readonly IPSURepo repo = repo;
         private readonly ILogger<PSUService> logger = logger;
         private readonly IValidator<DTOPSUModelCreate> validator = validator;
         private readonly IMapper mapper = mapper;
+        private readonly ICacheService cacheService = cacheService;
+
+        const string keyCache = "psu:version";
 
         #region Get
         public async Task<IEnumerable<RDTOPSUModel>> GetFullAsync(CancellationToken cancellation)
@@ -52,20 +59,57 @@ namespace ByMyPC.Services.PSUService
 
         public async Task<IEnumerable<RDTOPSUSmallModel>> SearchByName(string name, CancellationToken cancellation)
         {
+            long versionCache = await cacheService.GetVersionAsync(keyCache);
+
+            IEnumerable<RDTOPSUSmallModel>? dataCache = await cacheService.GetAsync<IEnumerable<RDTOPSUSmallModel>>($"psu:v{versionCache}:name={name}");
+
+            if (dataCache is not null) return dataCache;
+
             IList<RDTOPSUSmallModel> rdto = new List<RDTOPSUSmallModel>();
             await foreach (var item in repo.SearchByNameSmallAsyncEnumerable(name, cancellation))
             {
                 rdto.Add(Map(item));
             }
+
+            try
+            {
+                await cacheService.SetAsync($"psu:v{versionCache}:name={name}", rdto, TimeSpan.FromMinutes(3));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Redis not set data,First object Data {@data}", rdto.First());
+            }
+            
+
             return rdto;
         }
 
         public async Task<IEnumerable<RDTOPSUSmallModel>?> GetSmallWithPag(int page, int pageSize, CancellationToken cancellation)
         {
+
+            long versionCache = await cacheService.GetVersionAsync(keyCache);
+
+            IEnumerable<RDTOPSUSmallModel>? dataCache = await cacheService.GetAsync<IEnumerable<RDTOPSUSmallModel>>($"psu:v{versionCache}:page={page}:page-size:{pageSize}");
+
+            if (dataCache is not null) return dataCache;
+
             var data = await repo.GetSmallModelsAsyncWithPag(page, pageSize, cancellation);
             if (data is null)
                 logger.LogWarning("Func {func} Return null value\nparam Page: {page}; pageSize: {pagesize}", nameof(GetSmallWithPag), page, pageSize);
-            return data?.Select(Map).ToList();
+            List<RDTOPSUSmallModel>? rdto = data?.Select(Map).ToList();
+
+            try
+            {
+                await cacheService.SetAsync($"psu:v{versionCache}:page={page}:page-size:{pageSize}", rdto, TimeSpan.FromMinutes(3));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Redis not set data,First object Data {@data}", rdto.First());
+            }
+
+            return rdto;
+
+
         }
 
         public async Task<IEnumerable<RDTOPSUModel>> SearchByNameFullAsync(string name, CancellationToken cancellation) {
@@ -114,6 +158,7 @@ namespace ByMyPC.Services.PSUService
                 model.IsCertified
                 );
             var data = await repo.UpdateAsync(update);
+            await cacheService.IncrementAsync(keyCache);
             return data is not null ? Map(data) : null;
         }
         #endregion
@@ -123,6 +168,7 @@ namespace ByMyPC.Services.PSUService
         {
             await validator.ValidateAndThrowAsync(model);
             Guid id = await repo.CreateAsync(Map(model));
+            await cacheService.IncrementAsync(keyCache);
             return id;
         }
         #endregion
@@ -131,6 +177,7 @@ namespace ByMyPC.Services.PSUService
         public async ValueTask<bool> RemoveAsync(Guid id)
         {
             bool isDeleted = await repo.RemoveAsync(id);
+            await cacheService.IncrementAsync(keyCache);
             return isDeleted;
         }
         #endregion 

@@ -80,8 +80,6 @@ namespace ByMyPC.Controllers
         /// <param name="cancellation">Cancellation token.</param>
         /// <returns>Full information collection by name</returns>
         [HttpGet("v2/search-name")]
-        [Experimental("NOT_TESTED_CODE")]
-
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOPSUModel>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SearchByNameFull([FromQuery] string name, CancellationToken cancellation)
@@ -97,8 +95,6 @@ namespace ByMyPC.Controllers
         /// <param name="cancellation">Cancellation token.</param>
         /// <returns>A collection of matching small PSU models.</returns>
         [HttpGet("v2/search-name-card")]
-        [Experimental("NOT_TESTED_CODE")]
-
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOPSUSmallModel>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SearchByNameCard([FromQuery] string name, CancellationToken cancellation)
@@ -132,7 +128,6 @@ namespace ByMyPC.Controllers
         /// <param name="cancellation">Cancellation token.</param>
         /// <returns>A page of full PSU models.</returns>
         [HttpGet("full-pag")]
-        [Experimental("NOT_TESTED_CODE")]
         public async Task<IActionResult> GetFullWithPag([FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellation) {
             IEnumerable<RDTOPSUModel>? data = await service.GetFullWithPag(page, pageSize, cancellation);
             return Ok(data);
@@ -144,10 +139,8 @@ namespace ByMyPC.Controllers
         /// <param name="filter">DTO PSU Filter model</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Collection filtered PSU's</returns>
-        [HttpGet("by-filter-small")]
-        [Experimental("NOT_TESTED_CODE")]
-
-        public async Task<IActionResult> GetWithPagSmall(DTOPSUFilterModel filter, CancellationToken cancellationToken)
+        [HttpGet("by-filter-card")]
+        public async Task<IActionResult> GetWithPagSmall([FromQuery] DTOPSUFilterModel filter, CancellationToken cancellationToken)
         {
             IEnumerable<RDTOPSUSmallModel> data = await service.GetByFilterSmall(filter, cancellationToken);
             return Ok(data);
@@ -160,9 +153,7 @@ namespace ByMyPC.Controllers
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Collection filtered PSU's</returns>
         [HttpGet("by-filter")]
-        [Experimental("NOT_TESTED_CODE")]
-
-        public async Task<IActionResult> GetWithFilterFull(DTOPSUFilterModel filter, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetWithFilterFull([FromQuery] DTOPSUFilterModel filter, CancellationToken cancellationToken)
         {
             IEnumerable<RDTOPSUModel> data = await service.GetByFilterFull(filter, cancellationToken);
             return Ok(data);

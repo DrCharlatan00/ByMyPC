@@ -1,6 +1,7 @@
 ﻿using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Models.PSUModels;
 using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -96,7 +97,8 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task TestGetWithNameSearch()
+    public async Task TestGetWithNameSearchLegacy()
+        // Legacy Function
     {
         Guid id = Guid.Empty;
         try
@@ -141,7 +143,97 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
 
 
     [Fact]
-    public async Task TestGetWithPag() {
+    public async Task TestGetWithNameSearchSmall()
+    // Legacy Function
+    {
+        Guid id = Guid.Empty;
+        try
+        {
+            PSUCreateModel model = new PSUCreateModel
+            {
+                Name = "Test",
+                IsLive = true,
+                IsModular = true,
+                IsCertified = true,
+                PowerWatt = 450,
+                Size = PSU_SIZE.ATX,
+            };
+            id = await repo.CreateAsync(model);
+
+
+        }
+        catch
+        {
+            Assert.Fail("Not created Test Model");
+        }
+        try
+        {
+            var request = await client.GetAsync($"api/psu/v2/search-name-card?name=Test");
+            Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
+
+            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOPSUSmallModel>>();
+
+            Assert.NotNull(data);
+            Assert.Equal("Test", data.First().Name);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail(ex.Message);
+        }
+        finally
+        {
+            await repo.RemoveAsync(id);
+        }
+
+    }
+
+    [Fact]
+    public async Task TestGetWithNameSearchFull()
+    // Legacy Function
+    {
+        Guid id = Guid.Empty;
+        try
+        {
+            PSUCreateModel model = new PSUCreateModel
+            {
+                Name = "Test",
+                IsLive = true,
+                IsModular = true,
+                IsCertified = true,
+                PowerWatt = 450,
+                Size = PSU_SIZE.ATX,
+            };
+            id = await repo.CreateAsync(model);
+
+
+        }
+        catch
+        {
+            Assert.Fail("Not created Test Model");
+        }
+        try
+        {
+            var request = await client.GetAsync($"api/psu/v2/search-name?name=Test");
+            Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
+
+            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOPSUModel>>();
+
+            Assert.NotNull(data);
+            Assert.Equal("Test", data.First().Name);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail(ex.Message);
+        }
+        finally
+        {
+            await repo.RemoveAsync(id);
+        }
+
+    }
+
+    [Fact]
+    public async Task TestGetWithPagSmall() {
         try
         {
             var request = await client.GetAsync($"api/psu/card-pag?page=1&pageSize=1");
@@ -155,6 +247,114 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
         catch (Exception ex)
         {
             Assert.Fail(ex.Message);
+        }
+    }
+
+
+    [Fact]
+    public async Task TestGetWithPagFull()
+    {
+        try
+        {
+            var request = await client.GetAsync($"api/psu/full-pag?page=1&pageSize=1");
+            Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
+
+            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOPSUSmallModel>>();
+
+            Assert.NotNull(data);
+            Assert.Single(data);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail(ex.Message);
+        }
+    }
+
+    [Fact]
+    public async Task TestGetByFilterFull()
+    {
+        Guid id = Guid.Empty;
+        try
+        {
+            PSUCreateModel model = new PSUCreateModel
+            {
+                Name = "Test",
+                IsLive = true,
+                IsModular = true,
+                IsCertified = true,
+                PowerWatt = 450,
+                Size = PSU_SIZE.ATX,
+            };
+            id = await repo.CreateAsync(model);
+
+
+        }
+        catch
+        {
+            Assert.Fail("Not created Test Model");
+        }
+        try
+        {
+            DTOPSUFilterModel filterModel = new ("Test",450,null,null,null,null);
+            var request = await client.GetAsync($"/api/PSU/by-filter?name={filterModel.Name}&powerWatt={filterModel.PowerWatt}");
+            Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
+
+            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOPSUModel>>();
+
+            Assert.NotNull(data);
+            Assert.Equal("Test", data.First().Name);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail(ex.Message);
+        }
+        finally
+        {
+            await repo.RemoveAsync(id);
+        }
+    }
+
+    [Fact]
+    public async Task TestGetByFilterSmall()
+    {
+        Guid id = Guid.Empty;
+        try
+        {
+            PSUCreateModel model = new PSUCreateModel
+            {
+                Name = "Test",
+                IsLive = true,
+                IsModular = true,
+                IsCertified = true,
+                PowerWatt = 450,
+                Size = PSU_SIZE.ATX,
+            };
+            id = await repo.CreateAsync(model);
+
+
+        }
+        catch
+        {
+            Assert.Fail("Not created Test Model");
+        }
+        try
+        {
+            DTOPSUFilterModel filterModel = new("Test", 450, null, null, null, null);
+            var request = await client.GetAsync($"/api/PSU/by-filter-card?name={filterModel.Name}&powerWatt={filterModel.PowerWatt}");
+            Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
+
+            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOPSUModel>>();
+
+            Assert.NotNull(data);
+            Assert.Equal("Test", data.First().Name);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail(ex.Message);
+        }
+        finally
+        {
+            await repo.RemoveAsync(id);
         }
     }
 

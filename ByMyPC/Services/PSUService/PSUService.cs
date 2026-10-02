@@ -144,7 +144,7 @@ namespace ByMyPC.Services.PSUService
                                                                                   model.IsLive,
                                                                                   model.Size,
                                                                                   model.IsModular,
-                                                                                  model.IsСertified);
+                                                                                  model.IsCertified);
         #endregion
     }
 }

@@ -15,7 +15,7 @@ namespace ByMyPC.Models.PSUModels
             IsLive = isLive;
             Size = size;
             IsModular = isModular;
-            IsСertified = isСertified;
+            IsCertified = isСertified;
         }
 
         public string? Name { get; set; } = null;
@@ -23,6 +23,6 @@ namespace ByMyPC.Models.PSUModels
         public bool? IsLive { get; set; } = null;
         public PSU_SIZE? Size { get; set; } = null;
         public bool? IsModular { get; set; } = null;
-        public bool? IsСertified { get; set; } = null;
+        public bool? IsCertified { get; set; } = null;
     }
 }

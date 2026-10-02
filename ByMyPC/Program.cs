@@ -140,5 +140,6 @@ app.MapControllers();
 
 app.MapHub<CpuHub>("/cpu-hub");
 app.MapHub<MotherboardHub>("/motherboard-hub");
-
+app.MapHub<HDDHub>("/hdd-hub");
+app.MapHub<PSUHub>("/psu-hub");
 app.Run();

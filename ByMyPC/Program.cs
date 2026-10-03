@@ -6,6 +6,8 @@ using ByMyPC.Hubs;
 using ByMyPC.Middlewares;
 using ByMyPC.Models.CpuModels;
 using ByMyPC.Models.CpuModels.DTO;
+using ByMyPC.Models.GPUModels;
+using ByMyPC.Models.GPUModels.DTO;
 using ByMyPC.Models.HDDModels;
 using ByMyPC.Models.HDDModels.DTO;
 using ByMyPC.Models.MotherbordModels;
@@ -102,6 +104,7 @@ builder.Services.AddAutoMapper(prf => {
     prf.AddProfile<MotherboardMappingClass>();
     prf.AddProfile<HDDMappingClass>();
     prf.AddProfile<PSUMappingModel>();
+    prf.AddProfile<MappingGPUClass>();
 
 } );
 
@@ -116,6 +119,8 @@ builder.Services.AddTransient<IValidator<DTOMotherboardUpdateModel>, Motherboard
 builder.Services.AddTransient<IValidator<DTOHDDCreateModel>, ValidatorHDDCreate>();
 
 builder.Services.AddTransient<IValidator<DTOPSUModelCreate>, PSUValidator>();
+
+builder.Services.AddTransient<IValidator<DTOGPUCreateModel>, GPUCreateValidator>();
 #endregion
 
 var app = builder.Build();

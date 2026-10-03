@@ -10,5 +10,8 @@ namespace ByMyPc.Postgresql.Models
         public string Name { get; set; } = "N/A";
         public int VideoMemorySize { get; set; } = 0;
         public VideoSlots VideoSlot { get; set; } = VideoSlots.UNKNOWN;
+        public int MemoryBus { get; set; } = 0;
+        public string TypeConnector { get; set; } = string.Empty;
+        public string TypeMemory { get; set; } = string.Empty;
     }
 }

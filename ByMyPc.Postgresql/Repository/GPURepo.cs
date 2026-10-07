@@ -3,6 +3,7 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
+using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using System;
@@ -12,7 +13,7 @@ using System.Text;
 
 namespace ByMyPc.Postgresql.Repository
 {
-    public class GPURepo(PgContext context)
+    public class GPURepo(PgContext context) : IGPURepo
     {
         private readonly PgContext context = context;
 
@@ -45,7 +46,7 @@ namespace ByMyPc.Postgresql.Repository
             return item;
         }
 
-        public async Task<IEnumerable<GPUSmallModel>> GetSmallModelWithPagination(int page, int pageSize, CancellationToken cancellationToken) 
+        public async Task<IEnumerable<GPUSmallModel>> GetSmallModelWithPagination(int page, int pageSize, CancellationToken cancellationToken)
         {
             return await context.GPUs.AsNoTracking()
                 .Select(x => new GPUSmallModel(x.ID, x.Name, x.VideoMemorySize))
@@ -55,12 +56,12 @@ namespace ByMyPc.Postgresql.Repository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<GpuDbModel>?> SearchByName(string name, CancellationToken cancellationToken) 
+        public async Task<IEnumerable<GpuDbModel>?> SearchByName(string name, CancellationToken cancellationToken)
         {
             return await context.GPUs.AsNoTracking().Where(x => x.Name.Contains(name)).OrderBy(x => x.ID).ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<GPUSmallModel>?> SearchByNameWithPag(string name, int page, int pageSize,CancellationToken cancellationToken)
+        public async Task<IEnumerable<GPUSmallModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
             return await context.GPUs.AsNoTracking()
                                      .Where(x => x.Name.Contains(name))
@@ -69,7 +70,7 @@ namespace ByMyPc.Postgresql.Repository
                                      .ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<GpuDbModel>> GetByFilter(GPUFilterModel filterModel, CancellationToken cancellationToken) 
+        public async Task<IEnumerable<GpuDbModel>> GetByFilter(GPUFilterModel filterModel, CancellationToken cancellationToken)
         {
             IQueryable<GpuDbModel> query = context.GPUs.AsNoTracking();
 
@@ -78,7 +79,7 @@ namespace ByMyPc.Postgresql.Repository
             if (filterModel.TypeConnector is not null) query = query.Where(x => x.TypeConnector == filterModel.TypeConnector);
 
             if (filterModel.VideoMemorySize is not null) query = query.Where(x => x.VideoMemorySize == filterModel.VideoMemorySize);
-            
+
             if (filterModel.VideoSlot is not null) query = query.Where(x => x.VideoSlot == filterModel.VideoSlot);
 
             if (filterModel.MemoryBus is not null) query = query.Where(x => x.MemoryBus == filterModel.MemoryBus);
@@ -89,7 +90,7 @@ namespace ByMyPc.Postgresql.Repository
         }
 
 
-        public async Task<IEnumerable<GPUSmallModel>> GetSmallByFilter(GPUFilterModel filterModel, int page, int pageSize,CancellationToken cancellationToken)
+        public async Task<IEnumerable<GPUSmallModel>> GetSmallByFilter(GPUFilterModel filterModel, int page, int pageSize, CancellationToken cancellationToken)
         {
             IQueryable<GpuDbModel> query = context.GPUs.AsNoTracking();
 
@@ -142,9 +143,10 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Create
-        public async Task<Guid> CreateAsync(GPUCreateModel model) 
+        public async Task<Guid> CreateAsync(GPUCreateModel model)
         {
-            GpuDbModel gpuDbModel = new GpuDbModel {
+            GpuDbModel gpuDbModel = new GpuDbModel
+            {
                 ID = Guid.NewGuid(),
                 Name = model.Name,
                 MemoryBus = model.MemoryBus,
@@ -159,9 +161,10 @@ namespace ByMyPc.Postgresql.Repository
                 await context.GPUs.AddAsync(gpuDbModel);
                 await context.SaveChangesAsync();
             }
-            catch (Exception ex) {
-                throw new CreateOperationException<GpuDbModel>("Can;t save new model",ex);
-                }
+            catch (Exception ex)
+            {
+                throw new CreateOperationException<GpuDbModel>("Can;t save new model", ex);
+            }
             return gpuDbModel.ID;
         }
         #endregion
@@ -179,8 +182,9 @@ namespace ByMyPc.Postgresql.Repository
                 await context.SaveChangesAsync();
                 return true;
             }
-            catch (Exception ex) {
-                throw new RemoveOperationException<GpuDbModel>("Item not removed",ex);
+            catch (Exception ex)
+            {
+                throw new RemoveOperationException<GpuDbModel>("Item not removed", ex);
             }
         }
         #endregion

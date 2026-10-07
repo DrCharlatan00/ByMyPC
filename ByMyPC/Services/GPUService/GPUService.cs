@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ByMyPc.Postgresql.CRUDModel.FiltersModels;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
@@ -83,9 +84,31 @@ namespace ByMyPC.Services.GPUService
             }
             return data.Select(Map).ToList();
         }
+
+        public async Task<IEnumerable<RDTOGPUModel>> GetByFilterAsync(DTOGPUFilter filter, CancellationToken cancellationToken) 
+        {
+            var data = await repo.GetByFilter(Map(filter),cancellationToken);
+            return data.Select(Map).ToList();
+        }
+
+        public async Task<IEnumerable<RDTOGPUSmallModel>> GetByFilterWithPagAsync(DTOGPUFilter filter, int page, int pageSize, CancellationToken cancellationToken)
+        {
+            IEnumerable<GPUSmallModel> data = await repo.GetSmallByFilter(Map(filter), page, pageSize, cancellationToken);
+            return data.Select(Map).ToList();
+        }
         #endregion
 
+
+
         #region Mappers
+
+        private GPUFilterModel Map(DTOGPUFilter model) => new GPUFilterModel(model.ID,
+                                                                             model.Name,
+                                                                             model.VideoMemorySize,
+                                                                             model.VideoSlot,
+                                                                             model.MemoryBus,
+                                                                             model.TypeConnector,
+                                                                             model.TypeMemory);
         private RDTOGPUSmallModel Map(GPUSmallModel model) => mapper.Map<RDTOGPUSmallModel>(model);
         private RDTOGPUModel Map(GpuDbModel model) => mapper.Map<RDTOGPUModel>(model);
 

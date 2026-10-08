@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -143,7 +144,7 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Create
-        public async Task<Guid> CreateAsync(GPUCreateModel model)
+        public async ValueTask<Guid> CreateAsync(GPUCreateModel model)
         {
             GpuDbModel gpuDbModel = new GpuDbModel
             {

@@ -1,11 +1,13 @@
 ﻿using AutoMapper;
 using ByMyPc.Postgresql.CRUDModel.FiltersModels;
+using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Models.GPUModels.DTO;
 using ByMyPC.Models.GPUModels.RDTO;
 using FluentValidation;
+using Microsoft.IdentityModel.Abstractions;
 
 namespace ByMyPC.Services.GPUService
 {
@@ -49,7 +51,7 @@ namespace ByMyPC.Services.GPUService
             return item == null ? null : Map(item);
         }
 
-        public async Task<IEnumerable<RDTOGPUSmallModel>> GetSmallWithPag(int page, int pageSize, CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOGPUSmallModel>?> GetSmallWithPag(int page, int pageSize, CancellationToken cancellationToken)
         {
             if (page >= 10000) throw new ArgumentException("Page is to big");
             if (pageSize >= 10000) throw new ArgumentException("Page Size is not correct");
@@ -98,6 +100,40 @@ namespace ByMyPC.Services.GPUService
         }
         #endregion
 
+        #region Update
+        public async Task<RDTOGPUModel?> UpdateAsync(DTOGPUUpdateModel model)
+        {
+            if (model.ID == Guid.Empty) throw new ArgumentException("You cannot update an empty ID.");
+
+            var data = await repo.UpdateAsync(Map(model));
+
+           return data is null ? null : Map(data);
+        }
+        #endregion
+
+        #region Create
+        public async ValueTask<Guid> CreateAsync(DTOGPUCreateModel model)
+        {
+            await validator.ValidateAndThrowAsync(model);
+
+            var data = await repo.CreateAsync(Map(model));
+
+            return data;
+
+        }
+        #endregion
+
+
+        #region Remove
+        public async Task<bool> RemoveAsync(Guid id)
+        {
+            if (id == Guid.Empty) throw new ArgumentException("You cannot update an empty ID.");
+
+            bool result = await repo.RemoveAsync(id);
+
+            return result;
+        }
+        #endregion
 
 
         #region Mappers
@@ -109,8 +145,18 @@ namespace ByMyPC.Services.GPUService
                                                                              model.MemoryBus,
                                                                              model.TypeConnector,
                                                                              model.TypeMemory);
+
+        private GPUUpdateModel Map(DTOGPUUpdateModel model) => new GPUUpdateModel(model.ID,
+                                                                             model.Name,
+                                                                             model.VideoMemorySize,
+                                                                             model.VideoSlot,
+                                                                             model.MemoryBus,
+                                                                             model.TypeConnector,
+                                                                             model.TypeMemory);
         private RDTOGPUSmallModel Map(GPUSmallModel model) => mapper.Map<RDTOGPUSmallModel>(model);
         private RDTOGPUModel Map(GpuDbModel model) => mapper.Map<RDTOGPUModel>(model);
+        private GPUCreateModel Map(DTOGPUCreateModel model) => mapper.Map<GPUCreateModel>(
+                                                                             model);
 
         #endregion
     }

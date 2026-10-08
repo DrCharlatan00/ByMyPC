@@ -2,7 +2,7 @@
 
 namespace ByMyPC.Models.GPUModels.DTO
 {
-    public record DTOGPUUpdate
+    public record DTOGPUUpdateModel
     (
         Guid ID,
         string? Name,

@@ -67,7 +67,36 @@ namespace ByMyPC.Controllers
             var data = await service.GetByFilterWithPagAsync(filter, page,pageSize,cancellationToken);
             return Ok(data);
         }
+        #endregion
+
+        #region Update
+        [HttpPut]
+        public async Task<IActionResult> Update([FromBody]DTOGPUUpdateModel model) 
+        {
+            var result = await service.UpdateAsync(model);
+            return result is not null ? Ok(result) : BadRequest();
+        }
 
         #endregion
+
+        #region Create
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] DTOGPUCreateModel model)
+        {
+            var result  = await service.CreateAsync(model);
+            return Ok(result);
+        }
+        #endregion
+
+
+        #region Remove
+        [HttpDelete]
+        public async Task<IActionResult> Remove([FromQuery]Guid id)
+        {
+            var result = await service.RemoveAsync(id);
+            return result == true ? Ok(result) : BadRequest();
+        }
+        #endregion
+
     }
 }

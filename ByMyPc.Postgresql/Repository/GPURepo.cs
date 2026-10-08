@@ -50,10 +50,10 @@ namespace ByMyPc.Postgresql.Repository
         public async Task<IEnumerable<GPUSmallModel>> GetSmallModelWithPagination(int page, int pageSize, CancellationToken cancellationToken)
         {
             return await context.GPUs.AsNoTracking()
-                .Select(x => new GPUSmallModel(x.ID, x.Name, x.VideoMemorySize))
                 .OrderBy(x => x.ID)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(x => new GPUSmallModel(x.ID, x.Name, x.VideoMemorySize))
                 .ToListAsync(cancellationToken);
         }
 
@@ -107,10 +107,11 @@ namespace ByMyPc.Postgresql.Repository
 
             if (filterModel.TypeMemory is not null) query = query.Where(x => x.TypeMemory == filterModel.TypeMemory);
 
-            return await query.Select(x => new GPUSmallModel(x.ID, x.Name, x.VideoMemorySize))
+            return await query
                 .OrderBy(x => x.ID)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(x => new GPUSmallModel(x.ID, x.Name, x.VideoMemorySize))
                 .ToListAsync(cancellationToken);
         }
 

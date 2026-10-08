@@ -178,7 +178,7 @@ namespace ByMyPC.Controllers
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(bool))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Remove([FromQuery]Guid id)
+        public async Task<IActionResult> Remove(Guid id)
         {
             var result = await service.RemoveAsync(id);
             return result == true ? Ok(result) : NotFound();

@@ -105,14 +105,14 @@ namespace ByMyPC.Services.HDDService
 
         public async Task<IEnumerable<RDTOHDDCardModel>?> GetCardByFilterWithPag(DTOHDDFilter filter, int page, int pageSize,CancellationToken cancellationToken)
         {
-            HDDFilterModel filterDB = filter.ConvertToDbModel(filter);
+            HDDFilterModel filterDB = Map(filter);
             var result = await repo.GetSmallByFilter(filterDB,page,pageSize, cancellationToken);
             return result is not null ? result.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOHDDModel>?> GetByFilter(DTOHDDFilter filter, CancellationToken cancellationToken)
         {
-            HDDFilterModel filterDB = filter.ConvertToDbModel(filter);
+            HDDFilterModel filterDB = Map(filter);
             var result = await repo.GetByFilter(filterDB, cancellationToken);
             return result is not null ? result.Select(Map).ToList() : null;
         }
@@ -168,14 +168,15 @@ namespace ByMyPC.Services.HDDService
         #endregion
 
         #region Remove
-        public async Task RemoveAsync(Guid id)
+        public async ValueTask<bool> RemoveAsync(Guid id)
         {
-            await repo.RemoveAsync(id);
-            
+            var ans = await repo.RemoveAsync(id);
+            if (ans == false) return false;
             var signalR = hub.Clients.All.SendAsync("HDDRemoved", id);
             var RedisUpdate = cacheService.IncrementAsync("hdd:version");
 
             await Task.WhenAll(signalR, RedisUpdate);
+            return true;
         }
         #endregion
 
@@ -195,6 +196,11 @@ namespace ByMyPC.Services.HDDService
         private RDTOHDDCardModel Map(HDDSmallModel model) => mapper.Map<RDTOHDDCardModel>(model);
         private RDTOHDDModel Map(HDDDbModel model) => mapper.Map<RDTOHDDModel>(model);
 
+        private HDDFilterModel Map(DTOHDDFilter model) => new HDDFilterModel(
+            model.Name,
+            model.GbSize,
+            (HddConnector?)model.Connector
+            );
         private HDDCreateModel Map(DTOHDDCreateModel model) => mapper.Map<HDDCreateModel>(model);
         #endregion
     }

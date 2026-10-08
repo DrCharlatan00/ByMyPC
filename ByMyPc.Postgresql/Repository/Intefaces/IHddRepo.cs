@@ -7,17 +7,17 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
 {
     public interface IHddRepo
     {
-        Task<Guid> CreateAsync(HDDCreateModel createModel);
         Task<HDDDbModel?> GetByID(Guid id);
         IAsyncEnumerable<HDDDbModel> GetModelsDbAsync(CancellationToken cancellationToken);
         IAsyncEnumerable<HDDSmallModel> GetSmallModelsDbAsync(CancellationToken cancellationToken);
         Task<IEnumerable<HDDSmallModel>> GetSmallModelWithPagination(int page, int pageSize, CancellationToken cancellationToken);
-        Task RemoveAsync(Guid id);
+        ValueTask<bool> RemoveAsync(Guid id);
         Task<IEnumerable<HDDDbModel>?> SearchByName(string name, CancellationToken cancellationToken);
         Task<IEnumerable<HDDSmallModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken);
         Task<IEnumerable<HDDDbModel>?> GetByFilter(HDDFilterModel filterModel, CancellationToken cancellationToken);
         Task<IEnumerable<HDDSmallModel>?> GetSmallByFilter(HDDFilterModel filterModel, int page, int pageSize, CancellationToken cancellationToken);
         Task<HDDDbModel?> UpdateAsync(HDDUpdateModel updateModel);
         Task<Guid> CreateAndAttach(HDDCreateModel model, Guid PcId);
+        ValueTask<Guid> CreateAsync(HDDCreateModel createModel);
     }
 }

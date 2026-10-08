@@ -170,8 +170,8 @@ namespace ByMyPC.Controllers
         /// <returns>Ok)</returns>
         [HttpDelete]
         public async Task<IActionResult> Remove([FromQuery] Guid id) {
-            await service.RemoveAsync(id);
-            return Ok();
+            var res = await service.RemoveAsync(id);
+            return res == true ? Ok() : NotFound();
         }
         #endregion
 

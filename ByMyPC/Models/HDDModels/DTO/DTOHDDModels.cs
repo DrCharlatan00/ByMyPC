@@ -23,14 +23,6 @@ namespace ByMyPC.Models.HDDModels.DTO
         public string? Name { get; set; } = null;
         public int? GbSize { get; set; } = null;
         public HddConnectorType? Connector { get; set; } = null;
-
-        public HDDFilterModel ConvertToDbModel(DTOHDDFilter filter) {
-            return new HDDFilterModel(
-                filter.Name,
-                filter.GbSize,
-                filter.Connector is not null ? (ByMyPc.Postgresql.Models.HddConnector)filter.Connector : null
-                );
-        }
     }
 
     public record DTOHddOperations(Guid PcId,Guid HddId);

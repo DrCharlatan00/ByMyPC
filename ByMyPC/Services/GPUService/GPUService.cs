@@ -15,7 +15,7 @@ namespace ByMyPC.Services.GPUService
         IGPURepo repo,
         IMapper mapper,
         ILogger<GPUService> logger,
-        IValidator<DTOGPUCreateModel> validator)
+        IValidator<DTOGPUCreateModel> validator) : IGPUService
     {
         private readonly IGPURepo repo = repo;
         private readonly IMapper mapper = mapper;
@@ -26,7 +26,7 @@ namespace ByMyPC.Services.GPUService
         #region Get
         public async Task<IEnumerable<RDTOGPUSmallModel>> GetSmallModelsAsync(CancellationToken cancellation)
         {
-            IList<RDTOGPUSmallModel> rdto = new List  <RDTOGPUSmallModel>();
+            IList<RDTOGPUSmallModel> rdto = new List<RDTOGPUSmallModel>();
             await foreach (var item in repo.GetSmallModelsDbAsync(cancellation))
             {
                 rdto.Add(Map(item));
@@ -45,7 +45,7 @@ namespace ByMyPC.Services.GPUService
             return rdto;
         }
 
-        public async Task<RDTOGPUModel?> GetByIDAsync(Guid id )
+        public async Task<RDTOGPUModel?> GetByIDAsync(Guid id)
         {
             var item = await repo.GetByID(id);
             return item == null ? null : Map(item);
@@ -58,8 +58,9 @@ namespace ByMyPC.Services.GPUService
 
             var data = await repo.GetSmallModelWithPagination(page, pageSize, cancellationToken);
 
-            if (data is null) {
-                logger.LogInformation("For request with param page {page} and pageSize {size} , returns data is null",page,pageSize);
+            if (data is null)
+            {
+                logger.LogInformation("For request with param page {page} and pageSize {size} , returns data is null", page, pageSize);
                 return null;
             }
             return data.Select(Map).ToList();
@@ -69,7 +70,8 @@ namespace ByMyPC.Services.GPUService
         public async Task<IEnumerable<RDTOGPUModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken)
         {
             var data = await repo.SearchByName(name, cancellationToken);
-            if (data is null) {
+            if (data is null)
+            {
                 logger.LogInformation("For request {func} with param name: {name} , returns data is null", nameof(SearchByNameAsync), name);
                 return null;
             }
@@ -87,9 +89,9 @@ namespace ByMyPC.Services.GPUService
             return data.Select(Map).ToList();
         }
 
-        public async Task<IEnumerable<RDTOGPUModel>> GetByFilterAsync(DTOGPUFilter filter, CancellationToken cancellationToken) 
+        public async Task<IEnumerable<RDTOGPUModel>> GetByFilterAsync(DTOGPUFilter filter, CancellationToken cancellationToken)
         {
-            var data = await repo.GetByFilter(Map(filter),cancellationToken);
+            var data = await repo.GetByFilter(Map(filter), cancellationToken);
             return data.Select(Map).ToList();
         }
 
@@ -107,7 +109,7 @@ namespace ByMyPC.Services.GPUService
 
             var data = await repo.UpdateAsync(Map(model));
 
-           return data is null ? null : Map(data);
+            return data is null ? null : Map(data);
         }
         #endregion
 

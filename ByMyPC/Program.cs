@@ -15,6 +15,7 @@ using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.PSUModels;
 using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Services.CpuService;
+using ByMyPC.Services.GPUService;
 using ByMyPC.Services.HDDService;
 using ByMyPC.Services.MotherboardService;
 using ByMyPC.Services.PSUService;
@@ -97,6 +98,9 @@ builder.Services.AddScoped<IHDDService, HDDService>();
 
 builder.Services.AddScoped<IPSURepo, PSURepo>();
 builder.Services.AddScoped<IPSUService, PSUService>();
+
+builder.Services.AddScoped<IGPURepo, GPURepo>();
+builder.Services.AddScoped<IGPUService, GPUService>();
 
 #region Mappers and Validators
 builder.Services.AddAutoMapper(prf => {

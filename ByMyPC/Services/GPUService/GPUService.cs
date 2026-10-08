@@ -4,10 +4,14 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Caching;
+using ByMyPC.Hubs;
 using ByMyPC.Models.GPUModels.DTO;
 using ByMyPC.Models.GPUModels.RDTO;
 using FluentValidation;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Abstractions;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ByMyPC.Services.GPUService
 {
@@ -15,12 +19,18 @@ namespace ByMyPC.Services.GPUService
         IGPURepo repo,
         IMapper mapper,
         ILogger<GPUService> logger,
-        IValidator<DTOGPUCreateModel> validator) : IGPUService
+        IValidator<DTOGPUCreateModel> validator,
+        ICacheService cache,
+        IHubContext<GPUHub> hub
+        ) : IGPUService
     {
         private readonly IGPURepo repo = repo;
         private readonly IMapper mapper = mapper;
         private readonly ILogger<GPUService> logger = logger;
         private readonly IValidator<DTOGPUCreateModel> validator = validator;
+        private readonly ICacheService cache = cache;
+        private readonly IHubContext<GPUHub> hub = hub;
+        private const string CacheKeyVersion = "gpu:version";
 
 
         #region Get
@@ -56,6 +66,14 @@ namespace ByMyPC.Services.GPUService
             if (page >= 10000) throw new ArgumentException("Page is to big");
             if (pageSize >= 10000) throw new ArgumentException("Page Size is not correct");
 
+            var keyVer = await cache.GetVersionAsync(CacheKeyVersion);
+
+            string CacheKey = $"gpu:v{keyVer}:page={page}:pageSize={pageSize}";
+
+            var cacheData = await cache.GetAsync<IEnumerable<RDTOGPUSmallModel>>(CacheKey);
+
+            if (cacheData is not null) return cacheData;
+
             var data = await repo.GetSmallModelWithPagination(page, pageSize, cancellationToken);
 
             if (data is null)
@@ -63,7 +81,11 @@ namespace ByMyPC.Services.GPUService
                 logger.LogInformation("For request with param page {page} and pageSize {size} , returns data is null", page, pageSize);
                 return null;
             }
-            return data.Select(Map).ToList();
+
+            var dataR = data.Select(Map).ToList();
+            await cache.SetAsync(CacheKey,dataR,TimeSpan.FromMinutes(3));
+
+            return dataR;
         }
 
 
@@ -80,13 +102,25 @@ namespace ByMyPC.Services.GPUService
 
         public async Task<IEnumerable<RDTOGPUSmallModel>?> SearchByNameAsyncWithPag(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
+            var keyVer = await cache.GetVersionAsync(CacheKeyVersion);
+
+            string CacheKey = $"gpu:v{keyVer}:name={name}:page={page}:pageSize={pageSize}";
+
+            var cacheData = await cache.GetAsync<IEnumerable<RDTOGPUSmallModel>>(CacheKey);
+
+            if (cacheData is not null) return cacheData;
+
             var data = await repo.SearchByNameWithPag(name, page, pageSize, cancellationToken);
             if (data is null)
             {
                 logger.LogInformation("For request {func} with param name: {name} , returns data is null", nameof(SearchByNameAsyncWithPag), name);
                 return null;
             }
-            return data.Select(Map).ToList();
+
+
+            var dataR = data.Select(Map).ToList();
+            await cache.SetAsync(CacheKey, dataR, TimeSpan.FromMinutes(3));
+            return dataR;
         }
 
         public async Task<IEnumerable<RDTOGPUModel>> GetByFilterAsync(DTOGPUFilter filter, CancellationToken cancellationToken)
@@ -97,8 +131,19 @@ namespace ByMyPC.Services.GPUService
 
         public async Task<IEnumerable<RDTOGPUSmallModel>> GetByFilterWithPagAsync(DTOGPUFilter filter, int page, int pageSize, CancellationToken cancellationToken)
         {
+            var keyVer = await cache.GetVersionAsync(CacheKeyVersion);
+
+            string CacheKey = $"gpu:v{keyVer}:filter{filter}:page={page}:pageSize={pageSize}";
+
+            var cacheData = await cache.GetAsync<IEnumerable<RDTOGPUSmallModel>>(CacheKey);
+
+            if (cacheData is not null) return cacheData;
             IEnumerable<GPUSmallModel> data = await repo.GetSmallByFilter(Map(filter), page, pageSize, cancellationToken);
-            return data.Select(Map).ToList();
+            
+            var dataR = data.Select(Map).ToList();
+            await cache.SetAsync(CacheKey, dataR, TimeSpan.FromMinutes(3));
+            
+            return dataR;
         }
         #endregion
 
@@ -109,7 +154,18 @@ namespace ByMyPC.Services.GPUService
 
             var data = await repo.UpdateAsync(Map(model));
 
-            return data is null ? null : Map(data);
+            if (data is null)
+            {
+                return null;
+            }
+            else
+            {
+                var caching = cache.IncrementAsync(CacheKeyVersion);
+                var signal = hub.Clients.All.SendAsync("GPUUpdated", data.ID);
+
+                await Task.WhenAll(caching, signal);
+                return Map(data);
+            }
         }
         #endregion
 
@@ -119,7 +175,11 @@ namespace ByMyPC.Services.GPUService
             await validator.ValidateAndThrowAsync(model);
 
             var data = await repo.CreateAsync(Map(model));
+            
+            var caching = cache.IncrementAsync(CacheKeyVersion);
+            var signal = hub.Clients.All.SendAsync("GPUCreated",data);
 
+            await Task.WhenAll(caching,signal);
             return data;
 
         }
@@ -132,7 +192,10 @@ namespace ByMyPC.Services.GPUService
             if (id == Guid.Empty) throw new ArgumentException("You cannot update an empty ID.");
 
             bool result = await repo.RemoveAsync(id);
+            var caching = cache.IncrementAsync(CacheKeyVersion);
+            var signal = hub.Clients.All.SendAsync("GPURemoved", id);
 
+            await Task.WhenAll(caching, signal);
             return result;
         }
         #endregion

@@ -342,6 +342,7 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    //Before pushing to the PC repo, create a test record with the GUID 590e5d08-46b0-4e08-bf0a-9c3b7f8afb65.
     public async Task TestCreateAndAttach() {
         
         DTOHDDCreateModel createModel = new DTOHDDCreateModel("TTTT", 100, ByMyPC.Models.HDDModels.HddConnectorType.SATA);
@@ -355,7 +356,7 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
 
 
     [Fact]
-    public async Task TestAttach()
+    public async Task TestAttach()//Before pushing to the PC repo, create a test record with the GUID 590e5d08-46b0-4e08-bf0a-9c3b7f8afb65.
     {
         var id = await repo.CreateAsync(
 new HDDCreateModel(
@@ -373,7 +374,7 @@ new HDDCreateModel(
 
 
     [Fact]
-    public async Task TestDeAttach()
+    public async Task TestDeAttach()//Before pushing to the PC repo, create a test record with the GUID 590e5d08-46b0-4e08-bf0a-9c3b7f8afb65.
     {
         var id = await repo.CreateAsync(
 new HDDCreateModel(

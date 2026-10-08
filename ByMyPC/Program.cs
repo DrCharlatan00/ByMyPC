@@ -6,6 +6,8 @@ using ByMyPC.Hubs;
 using ByMyPC.Middlewares;
 using ByMyPC.Models.CpuModels;
 using ByMyPC.Models.CpuModels.DTO;
+using ByMyPC.Models.GPUModels;
+using ByMyPC.Models.GPUModels.DTO;
 using ByMyPC.Models.HDDModels;
 using ByMyPC.Models.HDDModels.DTO;
 using ByMyPC.Models.MotherbordModels;
@@ -13,6 +15,7 @@ using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.PSUModels;
 using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Services.CpuService;
+using ByMyPC.Services.GPUService;
 using ByMyPC.Services.HDDService;
 using ByMyPC.Services.MotherboardService;
 using ByMyPC.Services.PSUService;
@@ -96,12 +99,16 @@ builder.Services.AddScoped<IHDDService, HDDService>();
 builder.Services.AddScoped<IPSURepo, PSURepo>();
 builder.Services.AddScoped<IPSUService, PSUService>();
 
+builder.Services.AddScoped<IGPURepo, GPURepo>();
+builder.Services.AddScoped<IGPUService, GPUService>();
+
 #region Mappers and Validators
 builder.Services.AddAutoMapper(prf => {
     prf.AddProfile<CpuMappingProfile>();
     prf.AddProfile<MotherboardMappingClass>();
     prf.AddProfile<HDDMappingClass>();
     prf.AddProfile<PSUMappingModel>();
+    prf.AddProfile<MappingGPUClass>();
 
 } );
 
@@ -116,6 +123,8 @@ builder.Services.AddTransient<IValidator<DTOMotherboardUpdateModel>, Motherboard
 builder.Services.AddTransient<IValidator<DTOHDDCreateModel>, ValidatorHDDCreate>();
 
 builder.Services.AddTransient<IValidator<DTOPSUModelCreate>, PSUValidator>();
+
+builder.Services.AddTransient<IValidator<DTOGPUCreateModel>, GPUCreateValidator>();
 #endregion
 
 var app = builder.Build();
@@ -142,4 +151,5 @@ app.MapHub<CpuHub>("/cpu-hub");
 app.MapHub<MotherboardHub>("/motherboard-hub");
 app.MapHub<HDDHub>("/hdd-hub");
 app.MapHub<PSUHub>("/psu-hub");
+app.MapHub<GPUHub>("/gpu-hub");
 app.Run();

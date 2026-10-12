@@ -45,6 +45,15 @@ namespace ByMyPc.Postgresql.Repository
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<IEnumerable<MotherboardDbModel>> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken)
+        {
+            return await context.Motherboards.AsNoTracking()
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .OrderBy(x => x.ID)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<MotherboardDbModel?> GetByIDAsync(Guid id)
         {
             return await context.Motherboards.AsNoTracking()
@@ -122,7 +131,7 @@ namespace ByMyPc.Postgresql.Repository
             }
         }
 
-        public async Task<Guid> CreateAsync(MotherboardCreateModel model)
+        public async ValueTask<Guid> CreateAsync(MotherboardCreateModel model)
         {
             try
             {
@@ -146,19 +155,20 @@ namespace ByMyPc.Postgresql.Repository
             }
         }
 
-        public async Task RemoveAsync(Guid id)
+        public async ValueTask<bool> RemoveAsync(Guid id)
         {
             try
             {
                 MotherboardDbModel? model = await context.Motherboards.FirstOrDefaultAsync(x => x.ID == x.ID);
-                if (model is null) throw new RemoveOperationException<MotherboardDbModel>("Item not found, remove aborted");
+                if (model is null) return false;
                 context.Motherboards.Remove(model);
                 await context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                throw new RemoveOperationException<MotherboardDbModel>(ex.Message, ex);
+                throw new RemoveOperationException<MotherboardDbModel>("Item not found, remove aborted", ex);
             }
+            return true;
         }
     }
 }

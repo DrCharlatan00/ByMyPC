@@ -177,7 +177,7 @@ namespace ByMyPC.Services.CpuService
 
         }
 
-        public async Task<Guid> CreateAsync(DTOCpuCreateModel model)
+        public async ValueTask<Guid> CreateAsync(DTOCpuCreateModel model)
         {
 #if DEBUG
             logger.LogInformation("Func {func} Get : model: {@model}", nameof(CreateAsync), model);
@@ -201,12 +201,13 @@ namespace ByMyPC.Services.CpuService
             return result;
         }
 
-        public async Task RemoveAsync(Guid id)
+        public async ValueTask<bool> RemoveAsync(Guid id)
         {
 #if DEBUG
             logger.LogInformation("Func {func} Get : id: {id}", nameof(RemoveAsync), id);
 #endif
-            await repo.RemoveAsync(id);
+            bool result = await repo.RemoveAsync(id);
+            if (result == false) return false;
             var signalR = hub.Clients.All.SendAsync("CpuRemoved", id);
 
             const string keyCacheV = "cpu:version";
@@ -219,7 +220,7 @@ namespace ByMyPC.Services.CpuService
             {
                 logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
             }
-
+            return true;
         }
 
 

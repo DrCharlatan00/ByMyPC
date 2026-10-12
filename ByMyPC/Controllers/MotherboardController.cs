@@ -7,6 +7,7 @@ using ByMyPC.Services.CpuService;
 using ByMyPC.Services.MotherboardService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing.Constraints;
 
 namespace ByMyPC.Controllers
 {
@@ -42,6 +43,13 @@ namespace ByMyPC.Controllers
         public async Task<IActionResult> GetFull(CancellationToken cancellationToken) {
             var data = await service.GetFullMotherboardAsync(cancellationToken);
             return data is not null ? Ok(data) : Problem(detail: "Collection unexpect return null data");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetFullWithPag([FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
+        {
+            var data = await service.GetFullWithPag(page, pageSize, cancellationToken);
+            return Ok(data);
         }
 
         /// <summary>

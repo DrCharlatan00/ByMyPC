@@ -117,7 +117,6 @@ namespace ByMyPC.Services.MotherboardService
             await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
             return rdto;
         }
-        #endregion
 
         public async Task<IEnumerable<RDTOModelMotherboard>?> GetByFilterAsync(DTOMotherboardFilter filter, CancellationToken cancellationToken) {
             var data = await repo.GetByFilterAsync(filter.ConvertToDbFilter(filter),cancellationToken);
@@ -130,6 +129,13 @@ namespace ByMyPC.Services.MotherboardService
             var data = await repo.GetByFilterWithPagAsync(filter.ConvertToDbFilter(filter), page, pageSize, cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
+
+        public async Task<IEnumerable<RDTOModelMotherboard>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken)
+        {
+            var data = await repo.GetFullWithPag(page, pageSize, cancellationToken);
+            return data is not null ? data.Select(Map).ToList() : null;
+        }
+        #endregion
 
         #region Update
         public async Task<RDTOModelMotherboard?> UpdateAsync(DTOMotherboardUpdateModel model)
@@ -159,7 +165,7 @@ namespace ByMyPC.Services.MotherboardService
         #endregion
 
         #region Create
-        public async Task<Guid> CreateAsync(DTOMotherboardCreateModel model)
+        public async ValueTask<Guid> CreateAsync(DTOMotherboardCreateModel model)
         {
             try
             {
@@ -190,13 +196,15 @@ namespace ByMyPC.Services.MotherboardService
         #endregion
 
         #region Remove
-        public async Task RemoveAsync(Guid id)
+        public async ValueTask<bool> RemoveAsync(Guid id)
         {
-            await repo.RemoveAsync(id);
+            bool result = await repo.RemoveAsync(id);
+
+            if (result == false) return false;
 
             var signalR = hub.Clients.All.SendAsync("MotherboardRemoved",id);
-
             const string keyCacheV = "motherboard:version";
+            
             var Caching = cacheService.IncrementAsync(keyCacheV);
 
             try
@@ -207,7 +215,7 @@ namespace ByMyPC.Services.MotherboardService
             {
                 logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
             }
-
+            return true;
 
         }
         #endregion

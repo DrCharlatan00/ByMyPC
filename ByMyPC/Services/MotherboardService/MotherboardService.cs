@@ -63,6 +63,7 @@ namespace ByMyPC.Services.MotherboardService
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> GetCardWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize);
             const string keyCacheV = "motherboard:version";
 
             long version = await cacheService.GetVersionAsync(keyCacheV);
@@ -92,12 +93,14 @@ namespace ByMyPC.Services.MotherboardService
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> SearchByNameAsync(string name, CancellationToken cancellationToken)
         {
+            CheckParam(name);
             var data = await repo.SearchByNameMotherboardSmallAsync(name, cancellationToken);
             return data != null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize, name);
             const string keyCacheV = "motherboard:version";
 
             long version = await cacheService.GetVersionAsync(keyCacheV);
@@ -134,6 +137,7 @@ namespace ByMyPC.Services.MotherboardService
 
         public async Task<IEnumerable<RDTOModelMotherboard>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize);
             var data = await repo.GetFullWithPag(page, pageSize, cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
@@ -228,6 +232,31 @@ namespace ByMyPC.Services.MotherboardService
         private MotherboardUpdateModel Map(DTOMotherboardUpdateModel model) => mapper.Map<MotherboardUpdateModel>(model);
         private MotherboardCreateModel Map(DTOMotherboardCreateModel model) => mapper.Map<MotherboardCreateModel>(model);
         private MotherBoardFilterModel Map(DTOMotherboardFilter model) => new MotherBoardFilterModel(model.ByName,model.ByLive,model.BySocket,model.ByHaveIntegratedGPU);
+        #endregion
+
+        #region Checkers
+        private static void CheckParam(int page, int pageSize)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+        }
+
+        private static void CheckParam(int page, int pageSize, string name)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
+
+        private static void CheckParam(string name)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
         #endregion
     }
 }

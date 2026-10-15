@@ -57,8 +57,7 @@ namespace ByMyPC.Services.GPUService
 
         public async Task<IEnumerable<RDTOGPUModel>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken)
         {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            CheckParam(page, pageSize);
 
             if (page > 10000) throw new ArgumentException("Page is high!");
             if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
@@ -80,8 +79,7 @@ namespace ByMyPC.Services.GPUService
 
         public async Task<IEnumerable<RDTOGPUSmallModel>?> GetSmallWithPag(int page, int pageSize, CancellationToken cancellationToken)
         {
-            if (page >= 10000) throw new ArgumentException("Page is to big");
-            if (pageSize >= 10000) throw new ArgumentException("Page Size is not correct");
+            CheckParam(page, pageSize);
 
             var keyVer = await cache.GetVersionAsync(CacheKeyVersion);
 
@@ -108,6 +106,7 @@ namespace ByMyPC.Services.GPUService
 
         public async Task<IEnumerable<RDTOGPUModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken)
         {
+            CheckParam(name);
             var data = await repo.SearchByName(name, cancellationToken);
             if (data is null)
             {
@@ -119,6 +118,7 @@ namespace ByMyPC.Services.GPUService
 
         public async Task<IEnumerable<RDTOGPUSmallModel>?> SearchByNameAsyncWithPag(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize, name);
             var keyVer = await cache.GetVersionAsync(CacheKeyVersion);
 
             string CacheKey = $"gpu:v{keyVer}:name={name}:page={page}:pageSize={pageSize}";
@@ -240,6 +240,31 @@ namespace ByMyPC.Services.GPUService
         private GPUCreateModel Map(DTOGPUCreateModel model) => mapper.Map<GPUCreateModel>(
                                                                              model);
 
+        #endregion
+
+        #region Checkers
+        private static void CheckParam(int page, int pageSize)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+        }
+
+        private static void CheckParam(int page, int pageSize, string name)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
+
+        private static void CheckParam(string name)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
         #endregion
     }
 }

@@ -63,6 +63,7 @@ namespace ByMyPC.Services.PSUService
 
         public async Task<IEnumerable<RDTOPSUSmallModel>> SearchByName(string name, CancellationToken cancellation)
         {
+            CheckParam(name);
             long versionCache = await cacheService.GetVersionAsync(keyCache);
 
             IEnumerable<RDTOPSUSmallModel>? dataCache = await cacheService.GetAsync<IEnumerable<RDTOPSUSmallModel>>($"psu:v{versionCache}:name={name}");
@@ -90,7 +91,7 @@ namespace ByMyPC.Services.PSUService
 
         public async Task<IEnumerable<RDTOPSUSmallModel>?> GetSmallWithPag(int page, int pageSize, CancellationToken cancellation)
         {
-
+            CheckParam(page, pageSize);
             long versionCache = await cacheService.GetVersionAsync(keyCache);
 
             IEnumerable<RDTOPSUSmallModel>? dataCache = await cacheService.GetAsync<IEnumerable<RDTOPSUSmallModel>>($"psu:v{versionCache}:page={page}:page-size:{pageSize}");
@@ -117,6 +118,7 @@ namespace ByMyPC.Services.PSUService
         }
 
         public async Task<IEnumerable<RDTOPSUModel>> SearchByNameFullAsync(string name, CancellationToken cancellation) {
+            CheckParam(name);
             IList<RDTOPSUModel> rdto = new List<RDTOPSUModel>();
             await foreach (var item in repo.SearchByNameAsyncEnumerable(name,cancellation)) 
             {
@@ -127,6 +129,7 @@ namespace ByMyPC.Services.PSUService
 
         public async Task<IEnumerable<RDTOPSUModel>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellation)
         {
+            CheckParam(page, pageSize);
             var data = await repo.GetFullWithPag(page, pageSize, cancellation);
             if (data is null)
                 logger.LogWarning("Func {func} Return null value\nparam Page: {page}; pageSize: {pagesize}", nameof(GetSmallWithPag), page, pageSize);
@@ -203,6 +206,31 @@ namespace ByMyPC.Services.PSUService
                                                                                   model.Size,
                                                                                   model.IsModular,
                                                                                   model.IsCertified);
+        #endregion
+
+        #region Checkers
+        private static void CheckParam(int page, int pageSize)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+        }
+
+        private static void CheckParam(int page, int pageSize, string name)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
+
+        private static void CheckParam(string name)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
         #endregion
     }
 }

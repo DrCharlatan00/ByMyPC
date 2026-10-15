@@ -46,6 +46,8 @@ namespace ByMyPC.Services.CpuService
 
         public async Task<IEnumerable<RDTOCpuModel>> GetFullCpuPagination(int page, int pageSize, CancellationToken cancellationToken)
         {
+
+            
             const string keyCacheV = "cpu:version";
 
             long vers = await cacheService.GetVersionAsync(keyCacheV);
@@ -82,6 +84,7 @@ namespace ByMyPC.Services.CpuService
 
         public async Task<IEnumerable<RDTOCpuSmallModel>> GetSmallModelsWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize);
             const string keyCacheV = "cpu:version";
 
             long vers = await cacheService.GetVersionAsync(keyCacheV);
@@ -105,7 +108,7 @@ namespace ByMyPC.Services.CpuService
 #if DEBUG
             logger.LogInformation("Func {func} Get : name: {name}", nameof(SearchByNameAsync), name);
 #endif
-
+            CheckParam(name);
 
             List<RDTOCpuSmallModel> RDTO = new();
             await foreach (var data in repo.SearchCpuSmallByNameAsyncEnumerable(name, cancellationToken))
@@ -133,6 +136,7 @@ namespace ByMyPC.Services.CpuService
 #if DEBUG
             logger.LogInformation("Func {func} Get : name: {name} , page: {page} , pageSize: {pageSize}", nameof(SearchByNameWithPaginationAsync), name, page, pageSize);
 #endif
+            CheckParam(page, pageSize, name);
 
             const string keyCacheV = "cpu:version";
 
@@ -234,6 +238,31 @@ namespace ByMyPC.Services.CpuService
         private RDTOCpuSmallModel Map(CpuSmallModel model) => mapper.Map<RDTOCpuSmallModel>(model);
         private CpuUpdateModel Map(DTOCpuUpdateModel model) => mapper.Map<CpuUpdateModel>(model);
         private CpuCreateModel Map(DTOCpuCreateModel model) => mapper.Map<CpuCreateModel>(model);
+
+        #region Checkers
+        private static void CheckParam(int page, int pageSize)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+        }
+
+        private static void CheckParam(int page, int pageSize, string name)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
+
+        private static void CheckParam(string name)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
+        #endregion
 
     }
 

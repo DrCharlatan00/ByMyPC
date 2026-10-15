@@ -52,10 +52,7 @@ namespace ByMyPC.Services.HDDService
 
         public async Task<IEnumerable<RDTOHDDModel>?> GetFullWithPagination(int page, int pageSize, CancellationToken cancellationToken)
         {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
-            if (page > 10000) throw new ArgumentException("Page is high!");
-            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+            CheckParam(page, pageSize);
 
             var data = await repo.GetFullWithPag(page, pageSize, cancellationToken);
             if (data is null) {
@@ -73,6 +70,7 @@ namespace ByMyPC.Services.HDDService
 
         public async Task<IEnumerable<RDTOHDDCardModel>> GetCardWithPagination(int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize);
             const string versionCacheKey = "hdd:version";
             long version = await cacheService.GetVersionAsync(versionCacheKey);
 
@@ -94,14 +92,18 @@ namespace ByMyPC.Services.HDDService
             return RDTOData;
         }
 
+
+
         public async Task<IEnumerable<RDTOHDDModel>?> SearchByName(string name, CancellationToken cancellationToken)
         {
+            CheckParam(name);
             var data = await repo.SearchByName(name, cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOHDDCardModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize, name);
             const string versionCacheKey = "hdd:version";
             long version = await cacheService.GetVersionAsync(versionCacheKey);
 
@@ -120,6 +122,7 @@ namespace ByMyPC.Services.HDDService
 
         public async Task<IEnumerable<RDTOHDDCardModel>?> GetCardByFilterWithPag(DTOHDDFilter filter, int page, int pageSize,CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize);
             HDDFilterModel filterDB = Map(filter);
             var result = await repo.GetSmallByFilter(filterDB,page,pageSize, cancellationToken);
             return result is not null ? result.Select(Map).ToList() : null;
@@ -217,6 +220,31 @@ namespace ByMyPC.Services.HDDService
             (HddConnector?)model.Connector
             );
         private HDDCreateModel Map(DTOHDDCreateModel model) => mapper.Map<HDDCreateModel>(model);
+        #endregion
+
+        #region Checkers
+        private static void CheckParam(int page, int pageSize)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+        }
+
+        private static void CheckParam(int page, int pageSize, string name)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
+
+        private static void CheckParam(string name)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
         #endregion
     }
 }

@@ -54,7 +54,23 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
     }
 
     [Fact]
-    public async Task TestPag()
+    public async Task TestPagFull()
+    {
+        var result = await httpClient.GetAsync("/api/motherboard/full-pag?page=1&pageSize=1");
+
+        if (!result.IsSuccessStatusCode) { output.WriteLine(result.ReasonPhrase); }
+
+        Assert.True(result.IsSuccessStatusCode);
+
+        IEnumerable<RDTOModelMotherboard>? data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOModelMotherboard>>();
+
+        Assert.NotNull(data);
+        Assert.NotEmpty(data);
+        Assert.Single(data);
+    }
+
+    [Fact]
+    public async Task TestPagCard()
     {
         var result = await httpClient.GetAsync("/api/motherboard/card-pag?page=1&pageSize=1");
 
@@ -65,7 +81,7 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
         IEnumerable<RDTOModelMotherboardCard>? data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOModelMotherboardCard>>();
 
         Assert.NotNull(data);
-
+        Assert.NotEmpty(data);
         Assert.Single(data);
     }
 

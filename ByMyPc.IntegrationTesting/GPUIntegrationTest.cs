@@ -44,6 +44,17 @@ public class GPUIntegrationTest : IClassFixture<TestWebApplicationFactory>
         Assert.NotEmpty(data);
     }
 
+    [Fact]
+    public async Task TestGetFullPag()
+    {
+        var request = await client.GetAsync("api/gpu/full-pag?page=1&pageSize=1");
+        Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
+
+        var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOGPUModel>>();
+        Assert.NotNull(data);
+        Assert.NotEmpty(data);
+        Assert.Single(data);
+    }
 
     [Fact]
     public async Task TestGetByID()

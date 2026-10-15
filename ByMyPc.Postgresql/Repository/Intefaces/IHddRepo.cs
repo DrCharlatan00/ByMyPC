@@ -19,5 +19,6 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         Task<HDDDbModel?> UpdateAsync(HDDUpdateModel updateModel);
         Task<Guid> CreateAndAttach(HDDCreateModel model, Guid PcId);
         ValueTask<Guid> CreateAsync(HDDCreateModel createModel);
+        Task<IEnumerable<HDDDbModel>> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken);
     }
 }

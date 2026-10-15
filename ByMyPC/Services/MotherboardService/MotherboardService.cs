@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ByMyPc.Postgresql.CRUDModel.FiltersModels;
 using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
@@ -10,6 +11,7 @@ using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.MotherbordModels.RDTO;
 using FluentValidation;
 using Microsoft.AspNetCore.SignalR;
+using System.Reflection.Metadata.Ecma335;
 using System.Xml.Linq;
 
 namespace ByMyPC.Services.MotherboardService
@@ -119,14 +121,14 @@ namespace ByMyPC.Services.MotherboardService
         }
 
         public async Task<IEnumerable<RDTOModelMotherboard>?> GetByFilterAsync(DTOMotherboardFilter filter, CancellationToken cancellationToken) {
-            var data = await repo.GetByFilterAsync(filter.ConvertToDbFilter(filter),cancellationToken);
+            var data = await repo.GetByFilterAsync(Map(filter),cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> GetByFilterWithPagAsync(DTOMotherboardFilter filter,int page, int pageSize, CancellationToken cancellationToken)
         {
-            var data = await repo.GetByFilterWithPagAsync(filter.ConvertToDbFilter(filter), page, pageSize, cancellationToken);
+            var data = await repo.GetByFilterWithPagAsync(Map(filter), page, pageSize, cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
@@ -225,6 +227,7 @@ namespace ByMyPC.Services.MotherboardService
         private RDTOModelMotherboard Map(MotherboardDbModel model) => mapper.Map<RDTOModelMotherboard>(model);
         private MotherboardUpdateModel Map(DTOMotherboardUpdateModel model) => mapper.Map<MotherboardUpdateModel>(model);
         private MotherboardCreateModel Map(DTOMotherboardCreateModel model) => mapper.Map<MotherboardCreateModel>(model);
+        private MotherBoardFilterModel Map(DTOMotherboardFilter model) => new MotherBoardFilterModel(model.ByName,model.ByLive,model.BySocket,model.ByHaveIntegratedGPU);
         #endregion
     }
 }

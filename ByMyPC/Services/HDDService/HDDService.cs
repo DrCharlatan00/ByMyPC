@@ -50,6 +50,21 @@ namespace ByMyPC.Services.HDDService
             return rdto;
         }
 
+        public async Task<IEnumerable<RDTOHDDModel>?> GetFullWithPagination(int page, int pageSize, CancellationToken cancellationToken)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+
+            var data = await repo.GetFullWithPag(page, pageSize, cancellationToken);
+            if (data is null) {
+                logger.LogWarning("With func {func} data return null",nameof(GetFullWithPagination));
+                return null;
+            }
+            return [.. data.Select(Map)];
+
+        }
         public async Task<RDTOHDDModel?> GetByIdAsync(Guid id)
         {
             var item = await repo.GetByID(id);
@@ -144,7 +159,7 @@ namespace ByMyPC.Services.HDDService
 
 
         #region Create
-        public async Task<Guid> CreateAsync(DTOHDDCreateModel dto)
+        public async ValueTask<Guid> CreateAsync(DTOHDDCreateModel dto)
         {
             await validator.ValidateAndThrowAsync(dto);
             var model = Map(dto);

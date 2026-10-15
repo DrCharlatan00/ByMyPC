@@ -35,6 +35,15 @@ namespace ByMyPc.Postgresql.Repository
             }
         }
 
+        public async Task<IEnumerable<HDDDbModel>> GetFullWithPag(int page, int pageSize,CancellationToken cancellationToken)
+        {
+            return await context.HDDs.AsNoTracking()
+                .OrderBy(x => x.ID)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+        }
+
 
         public async Task<HDDDbModel?> GetByID(Guid id)
         {

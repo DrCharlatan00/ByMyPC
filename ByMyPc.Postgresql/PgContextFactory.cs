@@ -8,7 +8,7 @@ namespace ByMyPc.Postgresql
     {
         public PgContext CreateDbContext(string[] args) {
             var optionsBuilder = new DbContextOptionsBuilder<PgContext>();
-            optionsBuilder.UseNpgsql("Password=1303;Persist Security Info=True;Username=DrCharlatan;Database=ByMyPc;Host=localhost");
+            optionsBuilder.UseNpgsql("Password=ByMyPcPGPass;Persist Security Info=True;Username=drcharlatan;Database=bymypcdb;Host=localhost");
             return new PgContext(optionsBuilder.Options);
         }
     }

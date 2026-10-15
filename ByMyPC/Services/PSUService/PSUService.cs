@@ -38,6 +38,12 @@ namespace ByMyPC.Services.PSUService
         #region Get
         public async Task<IEnumerable<RDTOPSUModel>> GetFullAsync(CancellationToken cancellation)
         {
+
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
+
+
             IList<RDTOPSUModel> rdto = new List<RDTOPSUModel>();
             await foreach (var item in repo.GetFullAsyncEnumerable(cancellation))
             {
@@ -59,11 +65,16 @@ namespace ByMyPC.Services.PSUService
             logger.LogInformation("Retrieved data");
 #endif
 
-
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
             return rdto;
         }
         public async Task<IEnumerable<RDTOPSUSmallModel>> GetSmallAsync(CancellationToken cancellation)
         {
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
             IList<RDTOPSUSmallModel> rdto = new List<RDTOPSUSmallModel>();
             await foreach (var item in repo.GetSmallAsyncEnumerable(cancellation))
             {
@@ -79,6 +90,9 @@ namespace ByMyPC.Services.PSUService
 #if DEBUG
             logger.LogInformation("Retrieved data");
 #endif
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
             return rdto;
 
         }
@@ -86,14 +100,23 @@ namespace ByMyPC.Services.PSUService
         public async Task<RDTOPSUModel?> GetByID(Guid id)
         {
 #if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
+#if DEBUG
             logger.LogInformation("GetByID Param: {id}", id);
 #endif
             var item = await repo.GetByIdAsync(id);
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
             return item is null ? null : Map(item);
         }
 
         public async Task<IEnumerable<RDTOPSUSmallModel>> SearchByName(string name, CancellationToken cancellation)
         {
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
             CheckParam(name);
 #if DEBUG
             logger.LogInformation("Check data is OK Param: {name}", name);
@@ -126,12 +149,17 @@ namespace ByMyPC.Services.PSUService
 #if DEBUG
             logger.LogInformation("retrieved data..");
 #endif
-
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
             return rdto;
         }
 
         public async Task<IEnumerable<RDTOPSUSmallModel>?> GetSmallWithPag(int page, int pageSize, CancellationToken cancellation)
         {
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
             CheckParam(page, pageSize);
 #if DEBUG
             logger.LogInformation("Check data is OK Param: Page {page}; PageSize {pageSize}", page, pageSize);
@@ -170,13 +198,18 @@ namespace ByMyPC.Services.PSUService
 #if DEBUG
             logger.LogInformation("Data retrieved for PSU Small Pag OK");
 #endif
-
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
             return rdto;
 
 
         }
 
         public async Task<IEnumerable<RDTOPSUModel>> SearchByNameFullAsync(string name, CancellationToken cancellation) {
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
             CheckParam(name);
 #if DEBUG
             logger.LogInformation("Check data is OK Param: {name}",name);
@@ -189,11 +222,17 @@ namespace ByMyPC.Services.PSUService
 #if DEBUG
             logger.LogInformation("retrieved data OK in Search by name Full");
 #endif
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
             return rdto;
         }
 
         public async Task<IEnumerable<RDTOPSUModel>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellation)
         {
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
             CheckParam(page, pageSize);
 #if DEBUG
             logger.LogInformation("Check data is OK Param : Page {page} PageSize {pageSize}",page,pageSize);
@@ -208,12 +247,17 @@ namespace ByMyPC.Services.PSUService
 #if DEBUG
             logger.LogInformation("retrieved data is ok in Get full pag, Before Map");
 #endif
-
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
             return data?.Select(Map).ToList();
         }
 
         public async Task<IEnumerable<RDTOPSUSmallModel>> GetByFilterSmall(DTOPSUFilterModel model, CancellationToken cancellationToken)
         {
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
             PSUFilterModel filterDb = Map(model);
 #if DEBUG
             logger.LogInformation("Mapping OK");
@@ -222,11 +266,17 @@ namespace ByMyPC.Services.PSUService
 #if DEBUG
             logger.LogInformation("Data get in db ok, next mapping and retrieved");
 #endif
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
             return data.Select(Map).ToList();
         }
 
         public async Task<IEnumerable<RDTOPSUModel>> GetByFilterFull(DTOPSUFilterModel model, CancellationToken cancellationToken)
         {
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
             PSUFilterModel filterDb = Map(model);
 #if DEBUG
             logger.LogInformation("Mapping OK");
@@ -234,6 +284,9 @@ namespace ByMyPC.Services.PSUService
             IEnumerable<PSUDbModel> data = await repo.GetByFilterFull(filterDb, cancellationToken);
 #if DEBUG
             logger.LogInformation("Data get in db ok, next mapping and retrieved");
+#endif
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
 #endif
             return data.Select(Map).ToList();
         }
@@ -243,6 +296,9 @@ namespace ByMyPC.Services.PSUService
         #region Update 
         public async Task<RDTOPSUModel?> UpdateAsync(DTOPSUModelUpdate model)
         {
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
 #if DEBUG
             logger.LogInformation("Update func get data: {@data}", model);
 #endif
@@ -266,6 +322,9 @@ namespace ByMyPC.Services.PSUService
 #if DEBUG
             logger.LogInformation("Services get information, exception not throw");
 #endif
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
             return Map(data);
         }
         #endregion
@@ -273,11 +332,53 @@ namespace ByMyPC.Services.PSUService
         #region Create 
         public async Task<Guid> CreateAsync(DTOPSUModelCreate model)
         {
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
+
+#if DEBUG
+            logger.LogInformation("Validating data...........");
+#endif
+
+
             await validator.ValidateAndThrowAsync(model);
+
+#if DEBUG
+            logger.LogInformation("Data is OK, Validator skip model");
+#endif
+
+#if DEBUG
+            logger.LogInformation("Start db procces............");
+#endif
+
+
+
             Guid id = await repo.CreateAsync(Map(model));
+
+#if DEBUG
+            logger.LogInformation("End procces in db");
+#endif
+
+
             var caching = cacheService.IncrementAsync(keyCache);
             var signal = hub.Clients.All.SendAsync("PSUUpdated", id);
+
+
+#if DEBUG
+            logger.LogInformation("Side Service start.....");
+#endif
+
+
             await Task.WhenAll(caching, signal);
+
+
+#if DEBUG
+            logger.LogInformation("Return id = {id}",id);
+#endif
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
+
             return id;
         }
         #endregion
@@ -285,10 +386,44 @@ namespace ByMyPC.Services.PSUService
         #region Remove 
         public async ValueTask<bool> RemoveAsync(Guid id)
         {
+
+#if DEBUG
+            logger.LogInformation("-----------------Service Start Work-----------------");
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Start Db removing procces............");
+#endif
+
+
             bool isDeleted = await repo.RemoveAsync(id);
+
+#if DEBUG
+            logger.LogInformation(isDeleted == false ? "Data not removed !!!!!!!!!!!!" : "Item removed");
+#endif
+
+
             var caching = cacheService.IncrementAsync(keyCache);
             var signal = hub.Clients.All.SendAsync("PSUDeleted");
+
+#if DEBUG
+            logger.LogInformation("Side Services start..............");
+#endif
+
+
             await Task.WhenAll(caching, signal);
+
+#if DEBUG
+            logger.LogInformation("Return data");
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("-----------------------Service end work------------------------");
+#endif
+
+
             return isDeleted;
         }
         #endregion 

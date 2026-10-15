@@ -42,6 +42,10 @@ namespace ByMyPC.Services.MotherboardService
             {
                 rdto.Add(Map(item));
             }
+            if (rdto is null) logger.LogWarning("Data in func {func} danger is null", nameof(GetCardMotherboardAsync));
+#if DEBUG
+            logger.LogInformation("Retrieved data");
+#endif
             return rdto;
         }
 
@@ -52,11 +56,20 @@ namespace ByMyPC.Services.MotherboardService
             {
                 rdto.Add(Map(item));
             }
+            if (rdto is null) logger.LogWarning("Data in func {func} danger is null", nameof(GetFullMotherboardAsync));
+
+#if DEBUG
+            logger.LogInformation("Retrieved data");
+#endif
             return rdto;
         }
 
         public async Task<RDTOModelMotherboard?> GetByIdAsync(Guid id)
         {
+
+#if DEBUG
+            logger.LogInformation("Get by id... param : {id}",id);
+#endif
             MotherboardDbModel? data = await repo.GetByIDAsync(id);
             return data != null ? Map(data) : null;
         }
@@ -64,6 +77,13 @@ namespace ByMyPC.Services.MotherboardService
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> GetCardWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken)
         {
             CheckParam(page, pageSize);
+
+#if DEBUG
+            logger.LogInformation("Checking param ok, param : page {page}, pageSize {pageSize}",page,pageSize);
+#endif
+
+
+
             const string keyCacheV = "motherboard:version";
 
             long version = await cacheService.GetVersionAsync(keyCacheV);
@@ -75,18 +95,67 @@ namespace ByMyPC.Services.MotherboardService
 
 
             if (cache is not null)
-            {
                 return cache;
-            }
 
-            var data = await repo.GetCardWithPaginationAsync(page, pageSize, cancellationToken);
+
+#if DEBUG
+            logger.LogInformation("Data in cache is null, continue get in db");
+#endif
+
+
+
+#if DEBUG
+            logger.LogInformation("Get data in db....");
+#endif
+
+
+            IEnumerable<MotherboardSmallDbModel>? data = await repo.GetCardWithPaginationAsync(page, pageSize, cancellationToken);
+
+
+#if DEBUG
+            logger.LogInformation("Data get in db ");
+#endif
+
+
 
             if (data is null) return null;
 
 
+#if DEBUG
+            logger.LogInformation("data is not null, continue");
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Mapping data... ");
+#endif
+
+
             var rdto = data.Select(Map).ToList();
 
+
+#if DEBUG
+            logger.LogInformation("mapping data is OK IEnumerable<MotherboardSmallDbModel>? => IEnumerable<RDTOModelMotherboardCard>?");
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Caching data...");
+#endif
+
+
             await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
+
+#if DEBUG
+            logger.LogInformation("Set cache is ok ");
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Retrieveing data");
+#endif
+
+
             return rdto;
 
         }
@@ -94,13 +163,40 @@ namespace ByMyPC.Services.MotherboardService
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> SearchByNameAsync(string name, CancellationToken cancellationToken)
         {
             CheckParam(name);
+
+#if DEBUG
+            logger.LogInformation("Check data is ok, param : {name}",name);
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("wait data in db ...., func {func db}", "SearchByNameMotherboardSmallAsync");
+#endif
+
+
             var data = await repo.SearchByNameMotherboardSmallAsync(name, cancellationToken);
+
+#if DEBUG
+            logger.LogInformation("Data get in OK ");
+#endif
+
+#if DEBUG
+            logger.LogInformation("Retrieveing data");
+#endif
+
+
+
             return data != null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
             CheckParam(page, pageSize, name);
+
+#if DEBUG
+            logger.LogInformation("Check param is ok, param : page = {page} pageSize = {pageSize} name = {name}",page,pageSize,name);
+#endif
+
             const string keyCacheV = "motherboard:version";
 
             long version = await cacheService.GetVersionAsync(keyCacheV);
@@ -109,36 +205,122 @@ namespace ByMyPC.Services.MotherboardService
 
             var cache = await cacheService.GetAsync<IEnumerable<RDTOModelMotherboardCard>>(key);
 
-            if (cache is not null) {
+            if (cache is not null) 
                 return cache;
-            }
 
-            var data = await repo.SearchByNameMotherboardSmallWithPaginationAsync(name, page, pageSize, cancellationToken);
+
+#if DEBUG
+            logger.LogInformation("Cache data is miss, continue");
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Getting data in db....");
+#endif
+
+
+            IEnumerable<MotherboardSmallDbModel>? data = await repo.SearchByNameMotherboardSmallWithPaginationAsync(name, page, pageSize, cancellationToken);
+
+
+#if DEBUG
+            logger.LogInformation("Data get in db func {func}, next check in null", "SearchByNameMotherboardSmallWithPaginationAsync");
+#endif
+
 
             if (data is null) return null;
 
-            var rdto = data.Select(Map).ToList();
+#if DEBUG
+            logger.LogInformation("Data not null");
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Mapping data....");
+#endif
+
+
+            List<RDTOModelMotherboardCard> rdto = data.Select(Map).ToList();
+
+#if DEBUG
+            logger.LogInformation("Data mapped, IEnumerable<MotherboardSmallDbModel>? => IEnumerable<RDTOModelMotherboardCard>");
+#endif
+
+#if DEBUG
+            logger.LogInformation("Caching data....");
+#endif
 
             await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
+
+#if DEBUG
+            logger.LogInformation("data is cached");
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Retrieveing data");
+#endif
+
+
             return rdto;
         }
 
         public async Task<IEnumerable<RDTOModelMotherboard>?> GetByFilterAsync(DTOMotherboardFilter filter, CancellationToken cancellationToken) {
+
+#if DEBUG
+            logger.LogInformation("Func {func}, get data = {@data}",nameof(GetByFilterAsync),filter);
+#endif
+            
             var data = await repo.GetByFilterAsync(Map(filter),cancellationToken);
+
+#if DEBUG
+            logger.LogInformation("data get in db result is null = {result}", data is not null ? true : false);
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Retrieving data");
+#endif
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> GetByFilterWithPagAsync(DTOMotherboardFilter filter,int page, int pageSize, CancellationToken cancellationToken)
         {
+
+#if DEBUG
+            logger.LogInformation("Func {func} get next data = fliter {@filter} page = {page} pageSize = {pageSize}",filter,page,pageSize);
+#endif
             var data = await repo.GetByFilterWithPagAsync(Map(filter), page, pageSize, cancellationToken);
+#if DEBUG
+            logger.LogInformation("data get in db result is null = {result}", data is not null ? true : false);
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Retrieving data");
+#endif
+
+
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOModelMotherboard>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken)
         {
             CheckParam(page, pageSize);
+
+#if DEBUG
+            logger.LogInformation("Check param is ok: param page = {page} pageSize = {pageSize}", page, pageSize);
+#endif
+
             var data = await repo.GetFullWithPag(page, pageSize, cancellationToken);
+#if DEBUG
+            logger.LogInformation("data get in db result is null = {result}", data is not null ? true : false);
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Retrieving data");
+#endif
             return data is not null ? data.Select(Map).ToList() : null;
         }
         #endregion
@@ -147,16 +329,38 @@ namespace ByMyPC.Services.MotherboardService
         public async Task<RDTOModelMotherboard?> UpdateAsync(DTOMotherboardUpdateModel model)
         {
             await validatorUpdate.ValidateAndThrowAsync(model);
+
+#if DEBUG
+            logger.LogInformation("data is OK, Validator Skip model");
+#endif
+
+#if DEBUG
+            logger.LogInformation("Start updating in DB");
+#endif
+
             MotherboardDbModel? res = await repo.UpdateAsync(Map(model));
+
+#if DEBUG
+            logger.LogInformation(
+                "Db end Updating data, return info = {@res}",
+                res is not null ? res : new { Mess = "Data not updated, func returned null model" });
+#endif
+
+
             if (res is null)
             {
                 logger.LogInformation("Func {func} not update Motherboard with id: {id} \nModel: {@model}", nameof(UpdateAsync), model.id, model);
                 return null;
             }
+
             var signalR = hub.Clients.All.SendAsync("MotherboardUpdated",res.ID);
-            
             const string keyCacheV = "motherboard:version";
             var Caching =  cacheService.IncrementAsync(keyCacheV);
+
+#if DEBUG
+            logger.LogInformation("Side Services starting...");
+#endif
+
 
             try
             {
@@ -165,6 +369,11 @@ namespace ByMyPC.Services.MotherboardService
             catch (Exception ex) {
                 logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
             }
+
+#if DEBUG
+            logger.LogInformation("Retrieving data");
+#endif
+
 
             return Map(res);
         }
@@ -175,13 +384,33 @@ namespace ByMyPC.Services.MotherboardService
         {
             try
             {
-                await validatorCreate.ValidateAndThrowAsync(model);
-                Guid id = await repo.CreateAsync(Map(model));
-                
-                var signalR = hub.Clients.All.SendAsync("NewMotherboardCreated", id);
 
+                await validatorCreate.ValidateAndThrowAsync(model);
+
+#if DEBUG
+                logger.LogInformation("Data is ok, Validator skip model");
+#endif
+
+
+#if DEBUG
+                logger.LogInformation("Procces create start in db, model information = {@model}", model);
+#endif
+
+                Guid id = await repo.CreateAsync(Map(model));
+
+#if DEBUG
+                logger.LogInformation("Motherboard created");
+#endif
+
+
+                var signalR = hub.Clients.All.SendAsync("NewMotherboardCreated", id);
                 const string keyCacheV = "motherboard:version";
                 var Caching = cacheService.IncrementAsync(keyCacheV);
+
+
+#if DEBUG
+                logger.LogInformation("Side Serviced started...");
+#endif
 
                 try
                 {
@@ -192,6 +421,9 @@ namespace ByMyPC.Services.MotherboardService
                     logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
                 }
 
+#if DEBUG
+                logger.LogInformation("Retrieving data");
+#endif
                 return id;
             }
             catch (Exception ex) {
@@ -204,7 +436,21 @@ namespace ByMyPC.Services.MotherboardService
         #region Remove
         public async ValueTask<bool> RemoveAsync(Guid id)
         {
+
+#if DEBUG
+            logger.LogInformation("Request delete, id = {id}",id);
+#endif
+
+#if DEBUG
+            logger.LogInformation("Starting remove in db... ");
+#endif
+
             bool result = await repo.RemoveAsync(id);
+
+#if DEBUG
+            logger.LogInformation("Removing is end in db procces, Motherboard is deleted ? = {res}",
+                result == true ? "DB Send Mess is removed" : "Item not REMOVED !!!!");
+#endif
 
             if (result == false) return false;
 
@@ -212,6 +458,11 @@ namespace ByMyPC.Services.MotherboardService
             const string keyCacheV = "motherboard:version";
             
             var Caching = cacheService.IncrementAsync(keyCacheV);
+
+#if DEBUG
+            logger.LogInformation("Side Services started...");
+#endif
+
 
             try
             {
@@ -221,6 +472,13 @@ namespace ByMyPC.Services.MotherboardService
             {
                 logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
             }
+
+
+#if DEBUG
+            logger.LogInformation("Retrieving data");
+#endif
+
+
             return true;
 
         }

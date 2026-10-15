@@ -17,7 +17,7 @@ namespace ByMyPc.IntegrationTesting
                 var old = src.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<PgContext>));
 
                 if (old is not null) src.Remove(old);
-                src.AddDbContext<PgContext>(opt => { opt.UseNpgsql("Username=admin;Password=admin123;Persist Security Info=True;Database=ByMyPcTest;Host=192.168.1.110;Port=5432"); });
+                src.AddDbContext<PgContext>(opt => { opt.UseNpgsql("Username=admin;Password=admin123;Persist Security Info=True;Database=ByMyPcTest;Host=192.168.1.166;Port=5432"); });
 
             });
         }

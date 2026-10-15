@@ -41,6 +41,15 @@ namespace ByMyPc.Postgresql.Repository
             }
         }
 
+        public async Task<IEnumerable<GpuDbModel>> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken)
+        {
+            return await context.GPUs.AsNoTracking()
+                .OrderBy(x => x.ID)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<GpuDbModel?> GetByID(Guid id)
         {
             var item = await context.GPUs.FirstOrDefaultAsync(x => x.ID == id);

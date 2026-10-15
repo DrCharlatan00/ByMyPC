@@ -145,7 +145,7 @@ namespace ByMyPc.Postgresql.Repository
             }
         }
 
-        public async Task<Guid> CreateAsync(CpuCreateModel model)
+        public async ValueTask<Guid> CreateAsync(CpuCreateModel model)
         {
             try
             {
@@ -166,12 +166,20 @@ namespace ByMyPc.Postgresql.Repository
             }
         }
 
-        public async Task RemoveAsync(Guid id)
+        public async ValueTask<bool> RemoveAsync(Guid id)
         {
             CpuDbModel? removedmodel = await context.CPUs.FirstOrDefaultAsync(x => x.ID == id);
-            if (removedmodel is null) throw new RemoveOperationException<CpuDbModel>();
-            context.CPUs.Remove(removedmodel);
-            await context.SaveChangesAsync();
+            if (removedmodel is null) return false;
+            try
+            {
+                context.CPUs.Remove(removedmodel);
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new RemoveOperationException<CpuDbModel>($"Item CPU {id} not removed",ex);
+            }
+            return true;
         }
 
 

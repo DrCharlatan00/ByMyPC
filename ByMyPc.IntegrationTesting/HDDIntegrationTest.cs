@@ -53,7 +53,20 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
         Assert.NotNull(data);
     }
 
-        
+    [Fact]
+    public async Task TestGetFullPag()
+    {
+        var request = await httpClient.GetAsync("/api/hdds/full-pag?page=1&pageSize=1");
+        if (!request.IsSuccessStatusCode) output.WriteLine(request.ReasonPhrase);
+
+        Assert.True(request.IsSuccessStatusCode);
+
+        var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOHDDModel>>();
+        Assert.NotNull(data);
+        Assert.NotEmpty(data);
+        Assert.Single(data);
+    }
+
 
     [Fact]
     public async Task TestGetById()
@@ -109,6 +122,7 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
         var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOHDDCardModel>>();
 
         Assert.NotNull(data);
+        Assert.Single(data);
         Assert.Single(data);
     }
 

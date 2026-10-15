@@ -55,6 +55,23 @@ namespace ByMyPC.Services.GPUService
             return rdto;
         }
 
+        public async Task<IEnumerable<RDTOGPUModel>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+
+            var data = await repo.GetFullWithPag(page, pageSize, cancellationToken);
+            if (data is null)
+            {
+                logger.LogWarning("With func {func} data return null", nameof(GetFullWithPag));
+                return null;
+            }
+            return [.. data.Select(Map)];
+        }
+
         public async Task<RDTOGPUModel?> GetByIDAsync(Guid id)
         {
             var item = await repo.GetByID(id);

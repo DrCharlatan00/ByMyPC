@@ -184,8 +184,8 @@ namespace ByMyPC.Controllers
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> Delete(Guid id) {
-            await cpuService.RemoveAsync(id);
-            return Ok();
+            var result = await cpuService.RemoveAsync(id);
+            return result == true ? Ok() : NotFound();
         }
         
 

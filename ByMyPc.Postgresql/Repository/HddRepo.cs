@@ -35,6 +35,15 @@ namespace ByMyPc.Postgresql.Repository
             }
         }
 
+        public async Task<IEnumerable<HDDDbModel>> GetFullWithPag(int page, int pageSize,CancellationToken cancellationToken)
+        {
+            return await context.HDDs.AsNoTracking()
+                .OrderBy(x => x.ID)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+        }
+
 
         public async Task<HDDDbModel?> GetByID(Guid id)
         {
@@ -123,7 +132,7 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Create
-        public async Task<Guid> CreateAsync(HDDCreateModel createModel)
+        public async ValueTask<Guid> CreateAsync(HDDCreateModel createModel)
         {
             HDDDbModel newModel = new HDDDbModel
             {
@@ -145,14 +154,15 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Remove
-        public async Task RemoveAsync(Guid id)
+        public async ValueTask<bool> RemoveAsync(Guid id)
         {
             var item = await context.HDDs.FirstOrDefaultAsync(x => x.ID == id);
-            if (item is null) throw new RemoveOperationException<HDDDbModel>("Item not found, remove aborted");
+            if (item is null) return false;
             try
             {
                 context.HDDs.Remove(item);
                 await context.SaveChangesAsync();
+                return true;
             }
             catch (Exception ex)
             {

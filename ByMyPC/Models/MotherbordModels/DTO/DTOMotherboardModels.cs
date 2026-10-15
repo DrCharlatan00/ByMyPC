@@ -20,13 +20,7 @@ namespace ByMyPC.Models.MotherbordModels.DTO
         public string? BySocket { get; set; } = null;
         public bool? ByHaveIntegratedGPU { get; set; } = null;
 
-        public MotherBoardFilterModel ConvertToDbFilter(DTOMotherboardFilter filter) {
-            return new MotherBoardFilterModel {
-                ByHaveIntegratedGPU = filter.ByHaveIntegratedGPU,
-                ByLive = filter.ByLive,
-                ByName = filter.ByName,
-                BySocket = filter.BySocket,
-            };
-        }
+
+        
     }
 }

@@ -11,6 +11,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         Task<IEnumerable<GpuDbModel>> GetByFilter(GPUFilterModel filterModel, CancellationToken cancellationToken);
         Task<GpuDbModel?> GetByID(Guid id);
         IAsyncEnumerable<GpuDbModel> GetFullModelsDbAsync(CancellationToken cancellationToken);
+        Task<IEnumerable<GpuDbModel>> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken);
         Task<IEnumerable<GPUSmallModel>> GetSmallByFilter(GPUFilterModel filterModel, int page, int pageSize, CancellationToken cancellationToken);
         IAsyncEnumerable<GPUSmallModel> GetSmallModelsDbAsync(CancellationToken cancellationToken);
         Task<IEnumerable<GPUSmallModel>> GetSmallModelWithPagination(int page, int pageSize, CancellationToken cancellationToken);

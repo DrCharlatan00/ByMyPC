@@ -6,6 +6,7 @@ using ByMyPC.Services.HDDService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.FileProviders;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ByMyPC.Controllers
@@ -40,6 +41,12 @@ namespace ByMyPC.Controllers
             return data is not null ? Ok(data) : Problem(detail: "Collection unexpect is null");
         }
 
+        [HttpGet("full-pag")]
+        public async Task<IActionResult> GetFullWithPagination([FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
+        {
+            var data = await service.GetFullWithPagination(page, pageSize, cancellationToken);
+            return data is not null ? Ok(data) : Problem();
+        }
 
         /// <summary>
         /// Get by id full information for HDD
@@ -170,8 +177,8 @@ namespace ByMyPC.Controllers
         /// <returns>Ok)</returns>
         [HttpDelete]
         public async Task<IActionResult> Remove([FromQuery] Guid id) {
-            await service.RemoveAsync(id);
-            return Ok();
+            var res = await service.RemoveAsync(id);
+            return res == true ? Ok() : NotFound();
         }
         #endregion
 

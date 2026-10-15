@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ByMyPc.Postgresql.CRUDModel.FiltersModels;
 using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
@@ -8,6 +9,7 @@ using ByMyPC.Hubs;
 using ByMyPC.Models.CpuModels.DTO;
 using ByMyPC.Models.CpuModels.RDTO;
 using FluentValidation;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
 using System.Xml.Linq;
@@ -116,13 +118,13 @@ namespace ByMyPC.Services.CpuService
 
         public async Task<IEnumerable<RDTOCpuModel>?> GetByFilterAsync(DTOCpuFilter filter,CancellationToken cancellationToken)
         {
-            var data = await repo.GetByFilterAsync(filter.ConvertToDbFilter(filter),cancellationToken);
+            var data = await repo.GetByFilterAsync(Map(filter),cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOCpuSmallModel>?> GetByFilterWithPagAsync(DTOCpuFilter filter, int page, int pageSize, CancellationToken cancellationToken)
         {
-            var data = await repo.GetByFilterWithPagAsync(filter.ConvertToDbFilter(filter),page,pageSize, cancellationToken);
+            var data = await repo.GetByFilterWithPagAsync(Map(filter),page,pageSize, cancellationToken);
             return data is not null ? data.Select(MapToFull).ToList() : null;
         }
 
@@ -175,7 +177,7 @@ namespace ByMyPC.Services.CpuService
 
         }
 
-        public async Task<Guid> CreateAsync(DTOCpuCreateModel model)
+        public async ValueTask<Guid> CreateAsync(DTOCpuCreateModel model)
         {
 #if DEBUG
             logger.LogInformation("Func {func} Get : model: {@model}", nameof(CreateAsync), model);
@@ -199,12 +201,13 @@ namespace ByMyPC.Services.CpuService
             return result;
         }
 
-        public async Task RemoveAsync(Guid id)
+        public async ValueTask<bool> RemoveAsync(Guid id)
         {
 #if DEBUG
             logger.LogInformation("Func {func} Get : id: {id}", nameof(RemoveAsync), id);
 #endif
-            await repo.RemoveAsync(id);
+            bool result = await repo.RemoveAsync(id);
+            if (result == false) return false;
             var signalR = hub.Clients.All.SendAsync("CpuRemoved", id);
 
             const string keyCacheV = "cpu:version";
@@ -217,13 +220,17 @@ namespace ByMyPC.Services.CpuService
             {
                 logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
             }
-
+            return true;
         }
 
 
         private RDTOCpuModel Map(CpuDbModel model) => mapper.Map<RDTOCpuModel>(model);
         private RDTOCpuSmallModel MapToFull(CpuDbModel model) => mapper.Map<RDTOCpuSmallModel>(model);
-
+        private CPUFilterModel Map(DTOCpuFilter model) => new CPUFilterModel(
+            model.ByName,
+            model.ByLive,
+            model.ByQuantityCores
+            );
         private RDTOCpuSmallModel Map(CpuSmallModel model) => mapper.Map<RDTOCpuSmallModel>(model);
         private CpuUpdateModel Map(DTOCpuUpdateModel model) => mapper.Map<CpuUpdateModel>(model);
         private CpuCreateModel Map(DTOCpuCreateModel model) => mapper.Map<CpuCreateModel>(model);

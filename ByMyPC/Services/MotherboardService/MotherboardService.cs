@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ByMyPc.Postgresql.CRUDModel.FiltersModels;
 using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
@@ -10,6 +11,7 @@ using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.MotherbordModels.RDTO;
 using FluentValidation;
 using Microsoft.AspNetCore.SignalR;
+using System.Reflection.Metadata.Ecma335;
 using System.Xml.Linq;
 
 namespace ByMyPC.Services.MotherboardService
@@ -117,19 +119,25 @@ namespace ByMyPC.Services.MotherboardService
             await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
             return rdto;
         }
-        #endregion
 
         public async Task<IEnumerable<RDTOModelMotherboard>?> GetByFilterAsync(DTOMotherboardFilter filter, CancellationToken cancellationToken) {
-            var data = await repo.GetByFilterAsync(filter.ConvertToDbFilter(filter),cancellationToken);
+            var data = await repo.GetByFilterAsync(Map(filter),cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
 
         public async Task<IEnumerable<RDTOModelMotherboardCard>?> GetByFilterWithPagAsync(DTOMotherboardFilter filter,int page, int pageSize, CancellationToken cancellationToken)
         {
-            var data = await repo.GetByFilterWithPagAsync(filter.ConvertToDbFilter(filter), page, pageSize, cancellationToken);
+            var data = await repo.GetByFilterWithPagAsync(Map(filter), page, pageSize, cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
+
+        public async Task<IEnumerable<RDTOModelMotherboard>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken)
+        {
+            var data = await repo.GetFullWithPag(page, pageSize, cancellationToken);
+            return data is not null ? data.Select(Map).ToList() : null;
+        }
+        #endregion
 
         #region Update
         public async Task<RDTOModelMotherboard?> UpdateAsync(DTOMotherboardUpdateModel model)
@@ -159,7 +167,7 @@ namespace ByMyPC.Services.MotherboardService
         #endregion
 
         #region Create
-        public async Task<Guid> CreateAsync(DTOMotherboardCreateModel model)
+        public async ValueTask<Guid> CreateAsync(DTOMotherboardCreateModel model)
         {
             try
             {
@@ -190,13 +198,15 @@ namespace ByMyPC.Services.MotherboardService
         #endregion
 
         #region Remove
-        public async Task RemoveAsync(Guid id)
+        public async ValueTask<bool> RemoveAsync(Guid id)
         {
-            await repo.RemoveAsync(id);
+            bool result = await repo.RemoveAsync(id);
+
+            if (result == false) return false;
 
             var signalR = hub.Clients.All.SendAsync("MotherboardRemoved",id);
-
             const string keyCacheV = "motherboard:version";
+            
             var Caching = cacheService.IncrementAsync(keyCacheV);
 
             try
@@ -207,7 +217,7 @@ namespace ByMyPC.Services.MotherboardService
             {
                 logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
             }
-
+            return true;
 
         }
         #endregion
@@ -217,6 +227,7 @@ namespace ByMyPC.Services.MotherboardService
         private RDTOModelMotherboard Map(MotherboardDbModel model) => mapper.Map<RDTOModelMotherboard>(model);
         private MotherboardUpdateModel Map(DTOMotherboardUpdateModel model) => mapper.Map<MotherboardUpdateModel>(model);
         private MotherboardCreateModel Map(DTOMotherboardCreateModel model) => mapper.Map<MotherboardCreateModel>(model);
+        private MotherBoardFilterModel Map(DTOMotherboardFilter model) => new MotherBoardFilterModel(model.ByName,model.ByLive,model.BySocket,model.ByHaveIntegratedGPU);
         #endregion
     }
 }

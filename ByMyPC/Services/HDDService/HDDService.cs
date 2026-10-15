@@ -50,6 +50,21 @@ namespace ByMyPC.Services.HDDService
             return rdto;
         }
 
+        public async Task<IEnumerable<RDTOHDDModel>?> GetFullWithPagination(int page, int pageSize, CancellationToken cancellationToken)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+            if (page > 10000) throw new ArgumentException("Page is high!");
+            if (pageSize > 10000) throw new ArgumentException("Page Size is to long!");
+
+            var data = await repo.GetFullWithPag(page, pageSize, cancellationToken);
+            if (data is null) {
+                logger.LogWarning("With func {func} data return null",nameof(GetFullWithPagination));
+                return null;
+            }
+            return [.. data.Select(Map)];
+
+        }
         public async Task<RDTOHDDModel?> GetByIdAsync(Guid id)
         {
             var item = await repo.GetByID(id);
@@ -105,14 +120,14 @@ namespace ByMyPC.Services.HDDService
 
         public async Task<IEnumerable<RDTOHDDCardModel>?> GetCardByFilterWithPag(DTOHDDFilter filter, int page, int pageSize,CancellationToken cancellationToken)
         {
-            HDDFilterModel filterDB = filter.ConvertToDbModel(filter);
+            HDDFilterModel filterDB = Map(filter);
             var result = await repo.GetSmallByFilter(filterDB,page,pageSize, cancellationToken);
             return result is not null ? result.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOHDDModel>?> GetByFilter(DTOHDDFilter filter, CancellationToken cancellationToken)
         {
-            HDDFilterModel filterDB = filter.ConvertToDbModel(filter);
+            HDDFilterModel filterDB = Map(filter);
             var result = await repo.GetByFilter(filterDB, cancellationToken);
             return result is not null ? result.Select(Map).ToList() : null;
         }
@@ -144,7 +159,7 @@ namespace ByMyPC.Services.HDDService
 
 
         #region Create
-        public async Task<Guid> CreateAsync(DTOHDDCreateModel dto)
+        public async ValueTask<Guid> CreateAsync(DTOHDDCreateModel dto)
         {
             await validator.ValidateAndThrowAsync(dto);
             var model = Map(dto);
@@ -168,14 +183,15 @@ namespace ByMyPC.Services.HDDService
         #endregion
 
         #region Remove
-        public async Task RemoveAsync(Guid id)
+        public async ValueTask<bool> RemoveAsync(Guid id)
         {
-            await repo.RemoveAsync(id);
-            
+            var ans = await repo.RemoveAsync(id);
+            if (ans == false) return false;
             var signalR = hub.Clients.All.SendAsync("HDDRemoved", id);
             var RedisUpdate = cacheService.IncrementAsync("hdd:version");
 
             await Task.WhenAll(signalR, RedisUpdate);
+            return true;
         }
         #endregion
 
@@ -195,6 +211,11 @@ namespace ByMyPC.Services.HDDService
         private RDTOHDDCardModel Map(HDDSmallModel model) => mapper.Map<RDTOHDDCardModel>(model);
         private RDTOHDDModel Map(HDDDbModel model) => mapper.Map<RDTOHDDModel>(model);
 
+        private HDDFilterModel Map(DTOHDDFilter model) => new HDDFilterModel(
+            model.Name,
+            model.GbSize,
+            (HddConnector?)model.Connector
+            );
         private HDDCreateModel Map(DTOHDDCreateModel model) => mapper.Map<HDDCreateModel>(model);
         #endregion
     }

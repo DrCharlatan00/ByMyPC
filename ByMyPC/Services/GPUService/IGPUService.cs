@@ -10,6 +10,7 @@ namespace ByMyPC.Services.GPUService
         Task<IEnumerable<RDTOGPUSmallModel>> GetByFilterWithPagAsync(DTOGPUFilter filter, int page, int pageSize, CancellationToken cancellationToken);
         Task<RDTOGPUModel?> GetByIDAsync(Guid id);
         Task<IEnumerable<RDTOGPUModel>> GetFullModelsAsync(CancellationToken cancellation);
+        Task<IEnumerable<RDTOGPUModel>?> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOGPUSmallModel>> GetSmallModelsAsync(CancellationToken cancellation);
         Task<IEnumerable<RDTOGPUSmallModel>?> GetSmallWithPag(int page, int pageSize, CancellationToken cancellationToken);
         Task<bool> RemoveAsync(Guid id);

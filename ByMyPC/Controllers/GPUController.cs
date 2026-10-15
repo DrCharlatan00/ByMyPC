@@ -43,6 +43,13 @@ namespace ByMyPC.Controllers
             return data != null ? Ok(data) : NotFound();
         }
 
+        [HttpGet("full-pag")]
+        public async Task<IActionResult> GetFullWithPagination([FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
+        {
+            var data = await service.GetFullWithPag(page, pageSize, cancellationToken);
+            return data is not null ? Ok(data) : Problem();
+        }
+
         /// <summary>
         /// Gets a single GPU by its identifier.
         /// </summary>

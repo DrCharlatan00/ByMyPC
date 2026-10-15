@@ -53,6 +53,16 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
         Assert.NotNull(data);
     }
 
+    [Fact]
+    public async Task TestGetFullPag()
+    {
+        var request = await httpClient.GetAsync("/api/hdds/full");
+        if (!request.IsSuccessStatusCode) output.WriteLine(request.ReasonPhrase);
+
+        Assert.True(request.IsSuccessStatusCode);
+
+        var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOHDDModel>>();
+    }
         
 
     [Fact]

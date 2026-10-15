@@ -41,7 +41,7 @@ namespace ByMyPC.Controllers
             return data is not null ? Ok(data) : Problem(detail: "Collection unexpect is null");
         }
 
-        [HttpGet]
+        [HttpGet("full-pag")]
         public async Task<IActionResult> GetFullWithPagination([FromQuery] int page, [FromQuery] int pageSize, CancellationToken cancellationToken)
         {
             var data = await service.GetFullWithPagination(page, pageSize, cancellationToken);

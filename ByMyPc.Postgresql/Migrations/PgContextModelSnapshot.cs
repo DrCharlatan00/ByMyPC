@@ -267,6 +267,9 @@ namespace ByMyPc.Postgresql.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Size")
+                        .HasColumnType("integer");
+
                     b.HasKey("ID");
 
                     b.ToTable("RAMs");

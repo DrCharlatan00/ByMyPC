@@ -8,6 +8,7 @@ namespace ByMyPc.Postgresql.Models
     {
         public Guid ID { get; set; }
         public string Name { get; set; } = "N/A";
+        public int Size { get; set; } = 8;
         public TypeDDR DDRType { get; set; } = TypeDDR.DDR;
         public int Frequency { get; set; } = 0;
         public bool IsLive { get; set; } = false;

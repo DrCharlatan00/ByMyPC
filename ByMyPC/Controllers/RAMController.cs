@@ -158,7 +158,7 @@ namespace ByMyPC.Controllers
         /// <param name="pageSize">The maximum number of items per page.</param>
         /// <param name="cancellationToken">A token used to cancel the request.</param>
         /// <returns>An HTTP 200 response containing the requested page of matching RAM modules.</returns>
-        [HttpGet("by-filter-card")]
+        [HttpGet("by-filter-pag")]
         public async Task<IActionResult> GetSmallByFilterWithPagination(
             [FromQuery] DTORAMFilter filter,
             [FromQuery] int page,

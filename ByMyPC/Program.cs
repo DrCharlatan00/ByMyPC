@@ -12,6 +12,8 @@ using ByMyPC.Models.HDDModels;
 using ByMyPC.Models.HDDModels.DTO;
 using ByMyPC.Models.MotherbordModels;
 using ByMyPC.Models.MotherbordModels.DTO;
+using ByMyPC.Models.PCModels;
+using ByMyPC.Models.PCModels.DTO;
 using ByMyPC.Models.PSUModels;
 using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Models.RAMModels;
@@ -137,6 +139,8 @@ builder.Services.AddTransient<IValidator<DTOPSUModelCreate>, PSUValidator>();
 builder.Services.AddTransient<IValidator<DTOGPUCreateModel>, GPUCreateValidator>();
 
 builder.Services.AddTransient<IValidator<DTORAMCreate>, ValidatorRAMCreate>();
+
+builder.Services.AddTransient<IValidator<DTOPCCreateModel>, PCValidatorCreate>();
 #endregion
 
 var app = builder.Build();

@@ -14,11 +14,14 @@ using ByMyPC.Models.MotherbordModels;
 using ByMyPC.Models.MotherbordModels.DTO;
 using ByMyPC.Models.PSUModels;
 using ByMyPC.Models.PSUModels.DTO;
+using ByMyPC.Models.RAMModels;
+using ByMyPC.Models.RAMModels.DTO;
 using ByMyPC.Services.CpuService;
 using ByMyPC.Services.GPUService;
 using ByMyPC.Services.HDDService;
 using ByMyPC.Services.MotherboardService;
 using ByMyPC.Services.PSUService;
+using ByMyPC.Services.RamService;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -102,6 +105,12 @@ builder.Services.AddScoped<IPSUService, PSUService>();
 builder.Services.AddScoped<IGPURepo, GPURepo>();
 builder.Services.AddScoped<IGPUService, GPUService>();
 
+builder.Services.AddScoped<IRamRepo, RamRepo>();
+builder.Services.AddScoped<IPcRamRepo, PcRamRepo>();
+builder.Services.AddScoped<IRamService, RamService>();
+
+
+
 #region Mappers and Validators
 builder.Services.AddAutoMapper(prf => {
     prf.AddProfile<CpuMappingProfile>();
@@ -109,6 +118,7 @@ builder.Services.AddAutoMapper(prf => {
     prf.AddProfile<HDDMappingClass>();
     prf.AddProfile<PSUMappingModel>();
     prf.AddProfile<MappingGPUClass>();
+    prf.AddProfile<MappingRamClass>();
 
 } );
 
@@ -125,6 +135,8 @@ builder.Services.AddTransient<IValidator<DTOHDDCreateModel>, ValidatorHDDCreate>
 builder.Services.AddTransient<IValidator<DTOPSUModelCreate>, PSUValidator>();
 
 builder.Services.AddTransient<IValidator<DTOGPUCreateModel>, GPUCreateValidator>();
+
+builder.Services.AddTransient<IValidator<DTORAMCreate>, ValidatorRAMCreate>();
 #endregion
 
 var app = builder.Build();

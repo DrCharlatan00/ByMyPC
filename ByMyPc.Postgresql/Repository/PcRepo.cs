@@ -256,6 +256,129 @@ namespace ByMyPc.Postgresql.Repository
         }
         #endregion
 
+        #region Attach Methods
+        public async ValueTask<bool> AttachCPUAsync(Guid idPc,Guid IdCPU)
+        {
+            var CPU = await context.CPUs.AsNoTracking().FirstOrDefaultAsync(x => x.ID == IdCPU);
+            if (CPU is null) return false;
 
+            var PC = await context.PCs.Include(x => x.Cpu).FirstOrDefaultAsync(x => x.ID == idPc);
+            if (PC is null) return false;
+
+            if (PC.Cpu is not null) throw new OperationsException<PcDbModel>("In this PC, CPU Already Attached",true);
+
+            bool cpuIsAttached = await context.PCs
+                .AnyAsync(x => x.CpuId == IdCPU);
+
+            if (cpuIsAttached)
+                throw new OperationsException<CpuDbModel>(
+                    "CPU is already attached to another PC", true);
+
+
+            try
+            {
+                PC.CpuId = IdCPU;
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new OperationsException<PcDbModel>("Cpu not attached",false,ex);
+            }
+            return true;
+
+        }
+
+        public async ValueTask<bool> AttachGPUAsync(Guid idPc, Guid IdGPU)
+        {
+            var CPU = await context.GPUs.AsNoTracking().FirstOrDefaultAsync(x => x.ID == IdGPU);
+            if (CPU is null) return false;
+
+            var PC = await context.PCs.Include(x => x.Cpu).FirstOrDefaultAsync(x => x.ID == idPc);
+            if (PC is null) return false;
+
+            if (PC.Cpu is not null) throw new OperationsException<PcDbModel>("In this PC, GPU Already Attached", true);
+
+            bool cpuIsAttached = await context.PCs
+                .AnyAsync(x => x.GpuId == IdGPU);
+
+            if (cpuIsAttached)
+                throw new OperationsException<GpuDbModel>(
+                    "GPU is already attached to another PC", true);
+
+
+            try
+            {
+                PC.GpuId = IdGPU;
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new OperationsException<PcDbModel>("Gpu not attached", false, ex);
+            }
+            return true;
+
+        }
+
+        public async ValueTask<bool> AttachMotherboardAsync(Guid idPc, Guid IdMotherboard)
+        {
+            var CPU = await context.Motherboards.AsNoTracking().FirstOrDefaultAsync(x => x.ID == IdMotherboard);
+            if (CPU is null) return false;
+
+            var PC = await context.PCs.Include(x => x.Cpu).FirstOrDefaultAsync(x => x.ID == idPc);
+            if (PC is null) return false;
+
+            if (PC.Cpu is not null) throw new OperationsException<PcDbModel>("In this PC, Motherboard Already Attached", true);
+
+            bool cpuIsAttached = await context.PCs
+                .AnyAsync(x => x.MotherboardId == IdMotherboard);
+
+            if (cpuIsAttached)
+                throw new OperationsException<GpuDbModel>(
+                    "Motherboard is already attached to another PC", true);
+
+
+            try
+            {
+                PC.MotherboardId = IdMotherboard;
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new OperationsException<PcDbModel>("Motherboard not attached", false, ex);
+            }
+            return true;
+        }
+
+        public async ValueTask<bool> AttachPSUAsync(Guid idPc, Guid IdPSU)
+        {
+            var CPU = await context.Psu.AsNoTracking().FirstOrDefaultAsync(x => x.ID == IdPSU);
+            if (CPU is null) return false;
+
+            var PC = await context.PCs.Include(x => x.Cpu).FirstOrDefaultAsync(x => x.ID == idPc);
+            if (PC is null) return false;
+
+            if (PC.Cpu is not null) throw new OperationsException<PcDbModel>("In this PC, PSU Already Attached", true);
+
+            bool cpuIsAttached = await context.PCs
+                .AnyAsync(x => x.PSUId == IdPSU);
+
+            if (cpuIsAttached)
+                throw new OperationsException<GpuDbModel>(
+                    "PSU is already attached to another PC", true);
+
+
+            try
+            {
+                PC.PSUId = IdPSU;
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new OperationsException<PcDbModel>("PSU not attached", false, ex);
+            }
+            return true;
+
+        }
+        #endregion
     }
 }

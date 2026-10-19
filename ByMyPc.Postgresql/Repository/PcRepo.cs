@@ -1,5 +1,7 @@
 ﻿using ByMyPc.Postgresql.CRUDModel.FiltersModels;
+using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
+using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic;
@@ -193,8 +195,65 @@ namespace ByMyPc.Postgresql.Repository
                 .ToListAsync(cancellationToken);
         }
 
+        #endregion
 
+        #region Update
+        public async Task<PcDbModel?> UpdateAsync(PcUpdateModel model)
+        {
+            var old = await context.PCs.FirstOrDefaultAsync(x => x.ID == model.ID);
+            if (old is null) return null;
 
+            old.Name = model.Name ?? old.Name;
+
+            try
+            {
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new UpdateOperationException<PcDbModel>("Can't save new Update",ex);
+            }
+            return old;
+        }
+
+        #endregion
+
+        #region Create
+        public async ValueTask<Guid> CreateAsync(PcCreateModel model)
+        {
+            PcDbModel newModel = new PcDbModel {
+                ID = Guid.NewGuid(),
+                Name = model.Name is null ? "N?A" : model.Name,
+            };
+            try
+            {
+                await context.PCs.AddAsync(newModel);
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new CreateOperationException<PcDbModel>("Creating is fail",ex);
+            }
+            return newModel.ID;
+        }
+        #endregion
+
+        #region Remove
+        public async ValueTask<bool> RemoveAsync(Guid id)
+        {
+            var old = await context.PCs.FirstOrDefaultAsync(x => x.ID == id);
+            if (old is null) return false;
+            try
+            {
+                context.PCs.Remove(old);
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new RemoveOperationException<PcDbModel>("Item remove is fail", ex);
+            }
+            return true;
+        }
         #endregion
 
 

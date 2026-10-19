@@ -380,5 +380,142 @@ namespace ByMyPc.Postgresql.Repository
 
         }
         #endregion
+
+        #region Detach Methods
+
+        public async ValueTask<bool> DeattachCPUAsync(Guid idPc, Guid idCPU)
+        {
+            var cpuExists = await context.CPUs
+                .AnyAsync(x => x.ID == idCPU);
+
+            if (!cpuExists)
+                return false;
+
+            var pc = await context.PCs
+                .FirstOrDefaultAsync(x => x.ID == idPc);
+
+            if (pc is null)
+                return false;
+
+            if (pc.CpuId != idCPU)
+                throw new OperationsException<CpuDbModel>(
+                    "CPU is not attached to this PC", true);
+
+            try
+            {
+                pc.CpuId = null;
+
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new OperationsException<PcDbModel>(
+                    "CPU could not be detached", false, ex);
+            }
+
+            return true;
+        }
+
+        public async ValueTask<bool> DeattachGPUAsync(Guid idPc, Guid idGPU)
+        {
+            var cpuExists = await context.GPUs
+                .AnyAsync(x => x.ID == idGPU);
+
+            if (!cpuExists)
+                return false;
+
+            var pc = await context.PCs
+                .FirstOrDefaultAsync(x => x.ID == idPc);
+
+            if (pc is null)
+                return false;
+
+            if (pc.GpuId != idGPU)
+                throw new OperationsException<GpuDbModel>(
+                    "GPU is not attached to this PC", true);
+
+            try
+            {
+                pc.GpuId = null;
+
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new OperationsException<PcDbModel>(
+                    "GPU could not be detached", false, ex);
+            }
+
+            return true;
+        }
+
+        public async ValueTask<bool> DeattachMotherbordAsync(Guid idPc, Guid idMotherboard)
+        {
+            var cpuExists = await context.Motherboards
+                .AnyAsync(x => x.ID == idMotherboard);
+
+            if (!cpuExists)
+                return false;
+
+            var pc = await context.PCs
+                .FirstOrDefaultAsync(x => x.ID == idPc);
+
+            if (pc is null)
+                return false;
+
+            if (pc.MotherboardId != idMotherboard)
+                throw new OperationsException<MotherboardDbModel>(
+                    "Motherboard is not attached to this PC", true);
+
+            try
+            {
+                pc.MotherboardId = null;
+
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new OperationsException<PcDbModel>(
+                    "Motherboard could not be detached", false, ex);
+            }
+
+            return true;
+        }
+
+        public async ValueTask<bool> DeattachPSUAsync(Guid idPc, Guid idPSU)
+        {
+            var cpuExists = await context.Psu
+                .AnyAsync(x => x.ID == idPSU);
+
+            if (!cpuExists)
+                return false;
+
+            var pc = await context.PCs
+                .FirstOrDefaultAsync(x => x.ID == idPc);
+
+            if (pc is null)
+                return false;
+
+            if (pc.PSUId != idPSU)
+                throw new OperationsException<PSUDbModel>(
+                    "PSU is not attached to this PC", true);
+
+            try
+            {
+                pc.PSUId = null;
+
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new OperationsException<PcDbModel>(
+                    "PSU could not be detached", false, ex);
+            }
+
+            return true;
+        }
+
+        #endregion
+
     }
 }

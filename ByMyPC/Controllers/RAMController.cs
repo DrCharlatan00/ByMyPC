@@ -238,11 +238,10 @@ namespace ByMyPC.Controllers
         /// An HTTP 200 response if the RAM module is attached successfully;
         /// otherwise, an HTTP 404 response.
         /// </returns>
-        [HttpPut("Attach")]
-        public async Task<IActionResult> Attach([FromQuery] Guid idPc,
-                                                [FromQuery] Guid idRam)
+        [HttpPut("attach")]
+        public async Task<IActionResult> Attach([FromBody] DTOOperationRAM model)
         {
-            var result = await service.AttachAsync(idPc, idRam);
+            var result = await service.AttachAsync(model.IdPc, model.idRam);
             return result == true ? Ok(result) : NotFound();
         }
 
@@ -255,11 +254,10 @@ namespace ByMyPC.Controllers
         /// An HTTP 200 response if the RAM module is detached successfully;
         /// otherwise, an HTTP 404 response.
         /// </returns>
-        [HttpPut("DeAttach")]
-        public async Task<IActionResult> DeAttach([FromQuery] Guid idPc,
-                                                  [FromQuery] Guid idRam)
+        [HttpPut("deattach")]
+        public async Task<IActionResult> DeAttach([FromBody] DTOOperationRAM model)
         {
-            var result = await service.DeAttachAsync(idPc, idRam);
+            var result = await service.DeAttachAsync(model.IdPc, model.idRam);
             return result == true ? Ok(result) : NotFound();
         }
 

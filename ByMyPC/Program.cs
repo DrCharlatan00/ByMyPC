@@ -111,6 +111,8 @@ builder.Services.AddScoped<IRamRepo, RamRepo>();
 builder.Services.AddScoped<IPcRamRepo, PcRamRepo>();
 builder.Services.AddScoped<IRamService, RamService>();
 
+builder.Services.AddScoped<IPcRepo, PcRepo>();
+
 
 
 #region Mappers and Validators

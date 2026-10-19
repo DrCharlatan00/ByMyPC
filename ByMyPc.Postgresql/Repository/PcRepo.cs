@@ -3,6 +3,7 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
+using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic;
 using System;
@@ -13,7 +14,7 @@ using System.Text;
 
 namespace ByMyPc.Postgresql.Repository
 {
-    public class PcRepo(PgContext context)
+    public class PcRepo(PgContext context) : IPcRepo
     {
         private readonly PgContext context = context;
 
@@ -70,7 +71,7 @@ namespace ByMyPc.Postgresql.Repository
             return item;
         }
 
-        public async Task<IEnumerable<PcDbModel>> GetPcFullWithPagination(int page, int pageSize,CancellationToken cancellationToken)
+        public async Task<IEnumerable<PcDbModel>> GetPcFullWithPagination(int page, int pageSize, CancellationToken cancellationToken)
         {
             return await context.PCs.AsNoTracking()
                 .Include(x => x.Cpu)
@@ -160,7 +161,7 @@ namespace ByMyPc.Postgresql.Repository
             return await models.OrderBy(x => x.ID).ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<PcSmallModel>> GetByFilterWithPagination(PcFilterModel filter,int page,int pageSize,CancellationToken cancellationToken)
+        public async Task<IEnumerable<PcSmallModel>> GetByFilterWithPagination(PcFilterModel filter, int page, int pageSize, CancellationToken cancellationToken)
         {
             IQueryable<PcDbModel> models = context.PCs.AsNoTracking().Include(x => x.Cpu)
                 .Include(x => x.Motherboard)
@@ -179,7 +180,7 @@ namespace ByMyPc.Postgresql.Repository
 
             if (filter.powerWatt is not null) models = models.Where(x => x.PSU.PowerWatt == filter.powerWatt);
 
-            return await  models.OrderBy(x => x.ID)
+            return await models.OrderBy(x => x.ID)
                  .Select(x => new PcSmallModel(
                     x.ID,
                     x.Name,
@@ -211,7 +212,7 @@ namespace ByMyPc.Postgresql.Repository
             }
             catch (Exception ex)
             {
-                throw new UpdateOperationException<PcDbModel>("Can't save new Update",ex);
+                throw new UpdateOperationException<PcDbModel>("Can't save new Update", ex);
             }
             return old;
         }
@@ -221,7 +222,8 @@ namespace ByMyPc.Postgresql.Repository
         #region Create
         public async ValueTask<Guid> CreateAsync(PcCreateModel model)
         {
-            PcDbModel newModel = new PcDbModel {
+            PcDbModel newModel = new PcDbModel
+            {
                 ID = Guid.NewGuid(),
                 Name = model.Name is null ? "N?A" : model.Name,
             };
@@ -232,7 +234,7 @@ namespace ByMyPc.Postgresql.Repository
             }
             catch (Exception ex)
             {
-                throw new CreateOperationException<PcDbModel>("Creating is fail",ex);
+                throw new CreateOperationException<PcDbModel>("Creating is fail", ex);
             }
             return newModel.ID;
         }
@@ -257,7 +259,7 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Attach Methods
-        public async ValueTask<bool> AttachCPUAsync(Guid idPc,Guid IdCPU)
+        public async ValueTask<bool> AttachCPUAsync(Guid idPc, Guid IdCPU)
         {
             var CPU = await context.CPUs.AsNoTracking().FirstOrDefaultAsync(x => x.ID == IdCPU);
             if (CPU is null) return false;
@@ -265,7 +267,7 @@ namespace ByMyPc.Postgresql.Repository
             var PC = await context.PCs.Include(x => x.Cpu).FirstOrDefaultAsync(x => x.ID == idPc);
             if (PC is null) return false;
 
-            if (PC.Cpu is not null) throw new OperationsException<PcDbModel>("In this PC, CPU Already Attached",true);
+            if (PC.Cpu is not null) throw new OperationsException<PcDbModel>("In this PC, CPU Already Attached", true);
 
             bool cpuIsAttached = await context.PCs
                 .AnyAsync(x => x.CpuId == IdCPU);
@@ -282,7 +284,7 @@ namespace ByMyPc.Postgresql.Repository
             }
             catch (Exception ex)
             {
-                throw new OperationsException<PcDbModel>("Cpu not attached",false,ex);
+                throw new OperationsException<PcDbModel>("Cpu not attached", false, ex);
             }
             return true;
 

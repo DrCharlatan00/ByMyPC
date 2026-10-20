@@ -42,7 +42,18 @@ namespace ByMyPC.Models.HDDModels
                     GbSize: x.GbSize,
                     ConnectorType: (HddConnectorType)x.connector
                  )
+
+
               );
+
+            CreateMap<HDDDbModel, RDTOHDDCardModel>()
+                .ConstructUsing(
+            x => new RDTOHDDCardModel(
+                         id: x.ID,
+                         Name: x.Name,
+                         GbSize: x.GbSize
+            )
+            );
         }
     }
 }

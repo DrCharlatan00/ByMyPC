@@ -10,18 +10,27 @@ namespace ByMyPC.Models.PCModels.RDTO
 {
     public class PropertiesPc
     {
+        public PropertiesPc()
+        {
+                
+        }
 
+        public PropertiesPc(RDTOCpuSmallModel? cpu, RDTOGPUSmallModel? gpu, RDTOModelMotherboardCard? motherboard, RDTOPSUSmallModel? pSU, IEnumerable<RDTORAMSmallModel> rams, IEnumerable<RDTOHDDCardModel> hdds)
+        {
+            Cpu = cpu;
+            Gpu = gpu;
+            Motherboard = motherboard;
+            PSU = pSU;
+            Rams = rams;
+            Hdds = hdds;
+        }
 
-        public Guid? CpuId { get; set; }
         public RDTOCpuSmallModel? Cpu { get; set; }
 
-        public Guid? GpuId { get; set; }
         public RDTOGPUSmallModel? Gpu { get; set; }
 
-        public Guid? MotherboardId { get; set; }
         public RDTOModelMotherboardCard? Motherboard { get; set; }
 
-        public Guid? PSUId { get; set; }
         public RDTOPSUSmallModel? PSU { get; set; }
         IEnumerable<RDTORAMSmallModel> Rams { get; set; }
         IEnumerable<RDTOHDDCardModel> Hdds { get; set; }
@@ -33,6 +42,20 @@ namespace ByMyPC.Models.PCModels.RDTO
 
     public class PropertiesPcSmall
     {
+        public PropertiesPcSmall()
+        {
+              
+        }
+        public PropertiesPcSmall(Guid? cpuId, Guid? gpuId, Guid? motherboardId, Guid? pSUId, IEnumerable<Guid> rams, IEnumerable<Guid> hdds)
+        {
+            CpuId = cpuId;
+            GpuId = gpuId;
+            MotherboardId = motherboardId;
+            PSUId = pSUId;
+            Rams = rams;
+            Hdds = hdds;
+        }
+
         public Guid? CpuId { get; set; }
         public Guid? GpuId { get; set; }
         public Guid? MotherboardId { get; set; }

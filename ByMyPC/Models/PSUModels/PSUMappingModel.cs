@@ -46,6 +46,16 @@ namespace ByMyPC.Models.PSUModels
                            x.IsСertified
                         )
                 );
+
+            CreateMap<PSUDbModel, RDTOPSUSmallModel>()
+    .ConstructUsing(
+        x => new RDTOPSUSmallModel(
+               x.ID,
+               x.Name,
+               x.PowerWatt,
+               x.IsLive
+            )
+    );
             #endregion
         }
     }

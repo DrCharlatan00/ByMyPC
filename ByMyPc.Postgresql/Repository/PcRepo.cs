@@ -5,12 +5,8 @@ using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text;
+
 
 namespace ByMyPc.Postgresql.Repository
 {

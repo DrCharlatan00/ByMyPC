@@ -13,7 +13,10 @@ using ByMyPC.Models.PCModels.RDTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using ByMyPC.Models.RAMModels.RDTO;
 using FluentValidation;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Npgsql;
+using System.Xml.Linq;
 
 namespace ByMyPC.Services.PCService
 {
@@ -34,63 +37,181 @@ namespace ByMyPC.Services.PCService
         public async Task<IEnumerable<RDTOPCModel>> GetFullAsync(CancellationToken cancellationToken)
         {
             ICollection<RDTOPCModel> result = new List<RDTOPCModel>();
+
+#if DEBUG
+            logger.LogInformation("Start get collection on db and mapping...........");
+#endif
+
+
             await foreach (var item in repo.GetFullAsync(cancellationToken))
             {
                 result.Add(Map(item));
             }
+
+#if DEBUG
+            logger.LogInformation("End Db Procces");
+#endif
+
+
             return result;
         }
 
         public async Task<IEnumerable<RDTOPCSmallModel>> GetSmallAsync(CancellationToken cancellationToken)
         {
             ICollection<RDTOPCSmallModel> result = new List<RDTOPCSmallModel>();
+#if DEBUG
+            logger.LogInformation("Start get collection on db and mapping...........");
+#endif
             await foreach (var item in repo.GetSmallModelsAsync(cancellationToken))
             {
                 result.Add(Map(item));
             }
+#if DEBUG
+            logger.LogInformation("End Db Procces");
+#endif
             return result;
         }
 
         public async Task<RDTOPCModel?> GetByIdAsync(Guid id)
         {
+
+#if DEBUG
+            logger.LogInformation("Start Get object in db by id = {id}",id);
+#endif
+
+
             var item = await repo.GetByID(id);
+#if DEBUG
+            logger.LogInformation("End Db Procces, result = {status}",item is not null ? true : false);
+#endif
             return item is not null ? Map(item) : null;
         }
 
         public async Task<IEnumerable<RDTOPCModel>?> GetFullPaginatedAsync(int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize);
+
+#if DEBUG
+            logger.LogInformation("CheckParam pass, param  page = {page} pageSize = {pageSize}", page,pageSize);
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Start get Full Paginated in db................");
+#endif
+
+
             var data = await repo.GetPcFullWithPagination(page, pageSize, cancellationToken);
+
+#if DEBUG
+            logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
+#endif
+
+
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOPCSmallModel>?> GetSmallPaginatedAsync(int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize);
+#if DEBUG
+            logger.LogInformation("CheckParam pass, param  page = {page} pageSize = {pageSize}", page, pageSize);
+#endif
+#if DEBUG
+            logger.LogInformation("Start get Small Paginated in db................");
+#endif
             var data = await repo.GetPcSmallWithPagination(page, pageSize, cancellationToken);
+#if DEBUG
+            logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
+#endif
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOPCModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken) {
+            CheckParam(name);
+
+#if DEBUG
+            logger.LogInformation("CheckParam pass, param name = {name}", name);
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Start Search by name in db....................");
+#endif
+
+
             var data = await repo.SearchByName(name, cancellationToken);
+
+#if DEBUG
+            logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
+#endif
+
+
+
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOPCSmallModel>?> SearchByNamePaginatedAsync(string name, int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize, name);
+
+#if DEBUG
+            logger.LogInformation("CheckParam pass, param  page = {page} pageSize = {pageSize} name = {name}", page, pageSize, name);
+#endif
+
+#if DEBUG
+            logger.LogInformation("Start Search by name in db....................");
+#endif
+
             var data = await repo.SearchByNameWithPag(name,page,pageSize, cancellationToken);
+
+#if DEBUG
+            logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
+#endif
+
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOPCModel>?> GetByFilterAsync(DTOPCFilter filter,CancellationToken cancellationToken)
         {
+
+#if DEBUG
+            logger.LogInformation("Mapping filter = {@filter} to Db format..........",filter);
+#endif
+
+
             var filter2Db = Map(filter);
+
+#if DEBUG
+            logger.LogInformation("End Mapping, Start Filtering in Db...............");
+#endif
+
+
             var data = await repo.GetByFilter(filter2Db, cancellationToken);
+#if DEBUG
+            logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
+#endif
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
         public async Task<IEnumerable<RDTOPCSmallModel>?> GetByFilterAsyncPaginated(DTOPCFilter filter, int page, int pageSize, CancellationToken cancellationToken)
         {
+
+            CheckParam(page, pageSize);
+#if DEBUG
+            logger.LogInformation("CheckParam pass, param  page = {page} pageSize = {pageSize} ", page, pageSize);
+#endif
+#if DEBUG
+            logger.LogInformation("Mapping filter = {@filter} to Db format..........", filter);
+#endif
             var filter2Db = Map(filter);
+#if DEBUG
+            logger.LogInformation("End Mapping, Start Filtering in Db...............");
+#endif
             var data = await repo.GetByFilterWithPagination(filter2Db, page, pageSize, cancellationToken);
+#if DEBUG
+            logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
+#endif
             return data is not null ? data.Select(Map).ToList() : null;
         }
         #endregion
@@ -98,9 +219,32 @@ namespace ByMyPC.Services.PCService
         #region Update
         public async Task<RDTOPCModel?> UpdateAsync(DTOPCUpdateModel updateModel)
         {
+
+#if DEBUG
+            logger.LogInformation("Update model is = {@updateModel}",updateModel);
+#endif
+
+
             PcUpdateModel model = new PcUpdateModel(updateModel.id, updateModel.name);
+
+#if DEBUG
+            logger.LogInformation("Start Updating in db......");
+#endif
+
+
             PcDbModel? updatedModel = await repo.UpdateAsync(model);
+
+#if DEBUG
+            logger.LogInformation("End Db Procces, Mapping model ");
+#endif
+
+
             RDTOPCModel? mappedModel = updateModel is not null ? Map(updatedModel!) : null;
+
+#if DEBUG
+            logger.LogInformation("Checl and Mapping end. Result = {@res}",mappedModel);
+#endif
+
             return mappedModel;
 
         }
@@ -110,9 +254,33 @@ namespace ByMyPC.Services.PCService
         #region Create
         public async ValueTask<Guid> CreateAsync(DTOPCCreateModel createModel)
         {
+
+#if DEBUG
+            logger.LogInformation("Service start Creating new object. DTO = {@DTO}",createModel);
+#endif
+
+
+#if DEBUG
+            logger.LogInformation("Validate..............");
+#endif
+
+
             await validator.ValidateAndThrowAsync(createModel);
+
+
+
+
             var model = new PcCreateModel(createModel.name);
+
+#if DEBUG
+            logger.LogInformation("Validator pass data, Start Create in Db..................");
+#endif
+
             Guid res = await repo.CreateAsync(model);
+#if DEBUG
+            logger.LogInformation("Creating end");
+#endif
+
             return res;
         }
 
@@ -122,7 +290,19 @@ namespace ByMyPC.Services.PCService
 
         public async ValueTask<bool> RemoveAsync(Guid id)
         {
+
+#if DEBUG
+            logger.LogInformation("Start Removing in Db..............");
+#endif
+
+
             bool res = await repo.RemoveAsync(id);
+
+#if DEBUG
+            logger.LogInformation("End removing, result = {result}",res);
+#endif
+
+
             return res;
         }
 
@@ -131,6 +311,12 @@ namespace ByMyPC.Services.PCService
         #region Attach Methods
         public async ValueTask<bool> AttachAsync(Guid idPc, Guid idComponent, WithAttachOrDeattachToPc attachComponent )
         {
+
+#if DEBUG
+            logger.LogInformation("Start Attacing {whatAttach} in db.......",attachComponent.ToString());
+#endif
+
+
             bool result = false;
             switch (attachComponent)
             {
@@ -149,6 +335,12 @@ namespace ByMyPC.Services.PCService
                 default:
                     return false;
             }
+
+#if DEBUG
+            logger.LogInformation("Attach is end, result = {res}",result);
+#endif
+
+
             return result;
         }
         #endregion
@@ -156,6 +348,10 @@ namespace ByMyPC.Services.PCService
         #region Deattach Methods
         public async ValueTask<bool> DeattachAsync(Guid idPc, Guid idComponent, WithAttachOrDeattachToPc attachComponent)
         {
+#if DEBUG
+            logger.LogInformation("Start DeAttacing {whatDeAttach} in db.......", attachComponent.ToString());
+#endif
+
             bool result = false;
             switch (attachComponent)
             {
@@ -174,6 +370,9 @@ namespace ByMyPC.Services.PCService
                 default:
                     return false;
             }
+#if DEBUG
+            logger.LogInformation("Attach is end, result = {res}", result);
+#endif
             return result;
         }
         #endregion

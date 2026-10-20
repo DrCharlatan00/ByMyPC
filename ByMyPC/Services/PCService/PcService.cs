@@ -93,6 +93,7 @@ namespace ByMyPC.Services.PCService
             var data = await repo.GetByFilterWithPagination(filter2Db, page, pageSize, cancellationToken);
             return data is not null ? data.Select(Map).ToList() : null;
         }
+        #endregion
 
         #region Update
         public async Task<RDTOPCModel?> UpdateAsync(DTOPCUpdateModel updateModel)
@@ -125,6 +126,56 @@ namespace ByMyPC.Services.PCService
             return res;
         }
 
+        #endregion
+
+        #region Attach Methods
+        public async ValueTask<bool> AttachAsync(Guid idPc, Guid idComponent, WithAttachOrDeattachToPc attachComponent )
+        {
+            bool result = false;
+            switch (attachComponent)
+            {
+                case WithAttachOrDeattachToPc.CPU:
+                    result = await repo.AttachCPUAsync(idPc, idComponent);
+                    break;
+                case WithAttachOrDeattachToPc.GPU:
+                    result = await repo.AttachGPUAsync(idPc, idComponent);
+                    break;
+                case WithAttachOrDeattachToPc.MOTHERBOARD:
+                    result = await repo.AttachMotherboardAsync(idPc, idComponent);
+                    break;
+                case WithAttachOrDeattachToPc.PSU:
+                    result = await repo.AttachPSUAsync(idPc,idComponent);
+                    break;
+                default:
+                    return false;
+            }
+            return result;
+        }
+        #endregion
+
+        #region Deattach Methods
+        public async ValueTask<bool> DeattachAsync(Guid idPc, Guid idComponent, WithAttachOrDeattachToPc attachComponent)
+        {
+            bool result = false;
+            switch (attachComponent)
+            {
+                case WithAttachOrDeattachToPc.CPU:
+                    result = await repo.DeattachCPUAsync(idPc, idComponent);
+                    break;
+                case WithAttachOrDeattachToPc.GPU:
+                    result = await repo.DeattachGPUAsync(idPc, idComponent);
+                    break;
+                case WithAttachOrDeattachToPc.MOTHERBOARD:
+                    result = await repo.DeattachMotherbordAsync(idPc, idComponent);
+                    break;
+                case WithAttachOrDeattachToPc.PSU:
+                    result = await repo.DeattachPSUAsync(idPc, idComponent);
+                    break;
+                default:
+                    return false;
+            }
+            return result;
+        }
         #endregion
 
         #region Mappers

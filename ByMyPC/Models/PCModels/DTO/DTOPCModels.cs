@@ -4,9 +4,9 @@
 
     public record DTOPCCreateModel(string name);
 
-    public record DTOPCAttach(Guid pc, Guid Item, WithAttachToPc WithAttachToPcCode);
+    public record DTOPCAttachOrDeattach(Guid pc, Guid Item, WithAttachOrDeattachToPc WithAttachToPcCode);
 
-    public enum WithAttachToPc
+    public enum WithAttachOrDeattachToPc
     {
         CPU = 0,
         GPU = 1,

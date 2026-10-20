@@ -22,6 +22,7 @@ using ByMyPC.Services.CpuService;
 using ByMyPC.Services.GPUService;
 using ByMyPC.Services.HDDService;
 using ByMyPC.Services.MotherboardService;
+using ByMyPC.Services.PCService;
 using ByMyPC.Services.PSUService;
 using ByMyPC.Services.RamService;
 using FluentValidation;
@@ -112,7 +113,7 @@ builder.Services.AddScoped<IPcRamRepo, PcRamRepo>();
 builder.Services.AddScoped<IRamService, RamService>();
 
 builder.Services.AddScoped<IPcRepo, PcRepo>();
-
+builder.Services.AddScoped<IPcService, PcService>();
 
 
 #region Mappers and Validators

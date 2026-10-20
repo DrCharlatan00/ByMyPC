@@ -13,10 +13,7 @@ using ByMyPC.Models.PCModels.RDTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using ByMyPC.Models.RAMModels.RDTO;
 using FluentValidation;
-using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Npgsql;
-using System.Xml.Linq;
+
 
 namespace ByMyPC.Services.PCService
 {
@@ -26,7 +23,7 @@ namespace ByMyPC.Services.PCService
         IMapper mapper,
         IValidator<DTOPCCreateModel> validator,
         ILogger<PcService> logger
-        )
+        ) : IPcService
     {
         private readonly IPcRepo repo = repo;
         private readonly IMapper mapper = mapper;
@@ -76,13 +73,13 @@ namespace ByMyPC.Services.PCService
         {
 
 #if DEBUG
-            logger.LogInformation("Start Get object in db by id = {id}",id);
+            logger.LogInformation("Start Get object in db by id = {id}", id);
 #endif
 
 
             var item = await repo.GetByID(id);
 #if DEBUG
-            logger.LogInformation("End Db Procces, result = {status}",item is not null ? true : false);
+            logger.LogInformation("End Db Procces, result = {status}", item is not null ? true : false);
 #endif
             return item is not null ? Map(item) : null;
         }
@@ -92,7 +89,7 @@ namespace ByMyPC.Services.PCService
             CheckParam(page, pageSize);
 
 #if DEBUG
-            logger.LogInformation("CheckParam pass, param  page = {page} pageSize = {pageSize}", page,pageSize);
+            logger.LogInformation("CheckParam pass, param  page = {page} pageSize = {pageSize}", page, pageSize);
 #endif
 
 
@@ -127,7 +124,8 @@ namespace ByMyPC.Services.PCService
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
-        public async Task<IEnumerable<RDTOPCModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken) {
+        public async Task<IEnumerable<RDTOPCModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken)
+        {
             CheckParam(name);
 
 #if DEBUG
@@ -163,7 +161,7 @@ namespace ByMyPC.Services.PCService
             logger.LogInformation("Start Search by name in db....................");
 #endif
 
-            var data = await repo.SearchByNameWithPag(name,page,pageSize, cancellationToken);
+            var data = await repo.SearchByNameWithPag(name, page, pageSize, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
@@ -172,11 +170,11 @@ namespace ByMyPC.Services.PCService
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
-        public async Task<IEnumerable<RDTOPCModel>?> GetByFilterAsync(DTOPCFilter filter,CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOPCModel>?> GetByFilterAsync(DTOPCFilter filter, CancellationToken cancellationToken)
         {
 
 #if DEBUG
-            logger.LogInformation("Mapping filter = {@filter} to Db format..........",filter);
+            logger.LogInformation("Mapping filter = {@filter} to Db format..........", filter);
 #endif
 
 
@@ -221,7 +219,7 @@ namespace ByMyPC.Services.PCService
         {
 
 #if DEBUG
-            logger.LogInformation("Update model is = {@updateModel}",updateModel);
+            logger.LogInformation("Update model is = {@updateModel}", updateModel);
 #endif
 
 
@@ -242,7 +240,7 @@ namespace ByMyPC.Services.PCService
             RDTOPCModel? mappedModel = updateModel is not null ? Map(updatedModel!) : null;
 
 #if DEBUG
-            logger.LogInformation("Checl and Mapping end. Result = {@res}",mappedModel);
+            logger.LogInformation("Checl and Mapping end. Result = {@res}", mappedModel);
 #endif
 
             return mappedModel;
@@ -256,7 +254,7 @@ namespace ByMyPC.Services.PCService
         {
 
 #if DEBUG
-            logger.LogInformation("Service start Creating new object. DTO = {@DTO}",createModel);
+            logger.LogInformation("Service start Creating new object. DTO = {@DTO}", createModel);
 #endif
 
 
@@ -299,7 +297,7 @@ namespace ByMyPC.Services.PCService
             bool res = await repo.RemoveAsync(id);
 
 #if DEBUG
-            logger.LogInformation("End removing, result = {result}",res);
+            logger.LogInformation("End removing, result = {result}", res);
 #endif
 
 
@@ -309,11 +307,11 @@ namespace ByMyPC.Services.PCService
         #endregion
 
         #region Attach Methods
-        public async ValueTask<bool> AttachAsync(Guid idPc, Guid idComponent, WithAttachOrDeattachToPc attachComponent )
+        public async ValueTask<bool> AttachAsync(Guid idPc, Guid idComponent, WithAttachOrDeattachToPc attachComponent)
         {
 
 #if DEBUG
-            logger.LogInformation("Start Attacing {whatAttach} in db.......",attachComponent.ToString());
+            logger.LogInformation("Start Attacing {whatAttach} in db.......", attachComponent.ToString());
 #endif
 
 
@@ -330,14 +328,14 @@ namespace ByMyPC.Services.PCService
                     result = await repo.AttachMotherboardAsync(idPc, idComponent);
                     break;
                 case WithAttachOrDeattachToPc.PSU:
-                    result = await repo.AttachPSUAsync(idPc,idComponent);
+                    result = await repo.AttachPSUAsync(idPc, idComponent);
                     break;
                 default:
                     return false;
             }
 
 #if DEBUG
-            logger.LogInformation("Attach is end, result = {res}",result);
+            logger.LogInformation("Attach is end, result = {res}", result);
 #endif
 
 
@@ -414,18 +412,18 @@ namespace ByMyPC.Services.PCService
                     Hdd
                     )
             );
-}
+        }
 
         private RDTOPCSmallModel Map(PcSmallModel model)
         {
             return new RDTOPCSmallModel(
             model.ID, model.Name,
-            new PropertiesPcSmall(model.CpuId, model.GpuId, model.MotherboardId, model.PSUId,model.Rams,model.Hdd)
+            new PropertiesPcSmall(model.CpuId, model.GpuId, model.MotherboardId, model.PSUId, model.Rams, model.Hdd)
             );
         }
 
         //private RDTOCpuModel MapCpu(CpuDbModel model) => mapper.Map<RDTOCpuModel>(model);
-        private RDTOCpuSmallModel MapCpu (CpuSmallModel model) => mapper.Map<RDTOCpuSmallModel>(model);
+        private RDTOCpuSmallModel MapCpu(CpuSmallModel model) => mapper.Map<RDTOCpuSmallModel>(model);
         private RDTOCpuSmallModel MapCpu(CpuDbModel model) => mapper.Map<RDTOCpuSmallModel>(model);
 
 

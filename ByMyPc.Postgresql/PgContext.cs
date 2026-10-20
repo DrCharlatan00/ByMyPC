@@ -20,7 +20,7 @@ namespace ByMyPc.Postgresql
         public DbSet<PcRamDbModel> PcRams { get; set; }
 
         public DbSet<PcHddDbModel> PcHdds { get; set; }
-
+        public DbSet<PSUDbModel> Psu { get; set; }
         public PgContext(DbContextOptions<PgContext> options) : base(options)
         {
             
@@ -35,12 +35,17 @@ namespace ByMyPc.Postgresql
                 .HasForeignKey(x => x.CpuId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+
+            modelBuilder.Entity<CpuDbModel>().HasIndex(x => x.Name).HasMethod("gin").HasOperators("gin_trgm_ops");
+
             //motherboard
             modelBuilder.Entity<PcDbModel>()
                 .HasOne(x => x.Motherboard)
                 .WithMany()
                 .HasForeignKey(x => x.MotherboardId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<MotherboardDbModel>().HasIndex(x => x.Name).HasMethod("gin").HasOperators("gin_trgm_ops");
 
             //GPU
             modelBuilder.Entity<PcDbModel>()

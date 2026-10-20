@@ -47,6 +47,11 @@ namespace ByMyPc.Postgresql.Migrations
 
                     b.HasKey("ID");
 
+                    b.HasIndex("Name");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Name"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Name"), new[] { "gin_trgm_ops" });
+
                     b.ToTable("CPUs");
                 });
 
@@ -56,7 +61,18 @@ namespace ByMyPc.Postgresql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("MemoryBus")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TypeConnector")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TypeMemory")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -126,6 +142,11 @@ namespace ByMyPc.Postgresql.Migrations
 
                     b.HasKey("ID");
 
+                    b.HasIndex("Name");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Name"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Name"), new[] { "gin_trgm_ops" });
+
                     b.ToTable("Motherboards");
                 });
 
@@ -135,6 +156,15 @@ namespace ByMyPc.Postgresql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsLive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsModular")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsСertified")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -142,9 +172,12 @@ namespace ByMyPc.Postgresql.Migrations
                     b.Property<int>("PowerWatt")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Size")
+                        .HasColumnType("integer");
+
                     b.HasKey("ID");
 
-                    b.ToTable("PSUDbModel");
+                    b.ToTable("Psu");
                 });
 
             modelBuilder.Entity("ByMyPc.Postgresql.Models.PcDbModel", b =>
@@ -233,6 +266,9 @@ namespace ByMyPc.Postgresql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("Size")
+                        .HasColumnType("integer");
 
                     b.HasKey("ID");
 

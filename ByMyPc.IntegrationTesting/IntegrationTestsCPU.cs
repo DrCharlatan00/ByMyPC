@@ -190,7 +190,14 @@ namespace ByMyPc.IntegrationTesting
                 var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
 
                 Assert.NotNull(data);
-                Assert.Equal("Test", data.First().Name);
+                foreach (var item in data)
+                {
+                    if (!item.Name.Contains("Test"))
+                    {
+                        Assert.Fail("Items not contains Test");
+                    }
+                }
+
             }
             catch (Exception ex)
             {

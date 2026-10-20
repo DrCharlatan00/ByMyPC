@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using ByMyPc.Postgresql.CRUDModel.FiltersModels;
+using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
@@ -40,7 +41,7 @@ namespace ByMyPC.Services.PCService
             return result;
         }
 
-        public async Task<IEnumerable<RDTOPCSmallModel>> GetSmallAsycn(CancellationToken cancellationToken)
+        public async Task<IEnumerable<RDTOPCSmallModel>> GetSmallAsync(CancellationToken cancellationToken)
         {
             ICollection<RDTOPCSmallModel> result = new List<RDTOPCSmallModel>();
             await foreach (var item in repo.GetSmallModelsAsync(cancellationToken))
@@ -93,6 +94,36 @@ namespace ByMyPC.Services.PCService
             return data is not null ? data.Select(Map).ToList() : null;
         }
 
+        #region Update
+        public async Task<RDTOPCModel?> UpdateAsync(DTOPCUpdateModel updateModel)
+        {
+            PcUpdateModel model = new PcUpdateModel(updateModel.id, updateModel.name);
+            PcDbModel? updatedModel = await repo.UpdateAsync(model);
+            RDTOPCModel? mappedModel = updateModel is not null ? Map(updatedModel!) : null;
+            return mappedModel;
+
+        }
+
+        #endregion
+
+        #region Create
+        public async ValueTask<Guid> CreateAsync(DTOPCCreateModel createModel)
+        {
+            await validator.ValidateAndThrowAsync(createModel);
+            var model = new PcCreateModel(createModel.name);
+            Guid res = await repo.CreateAsync(model);
+            return res;
+        }
+
+        #endregion
+
+        #region Remove 
+
+        public async ValueTask<bool> RemoveAsync(Guid id)
+        {
+            bool res = await repo.RemoveAsync(id);
+            return res;
+        }
 
         #endregion
 

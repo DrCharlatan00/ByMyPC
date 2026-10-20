@@ -34,6 +34,12 @@ namespace ByMyPC.Models.GPUModels
                         )
                 );
 
+            CreateMap<GpuDbModel, RDTOGPUSmallModel>()
+                .ConstructUsing(x => new RDTOGPUSmallModel (
+                    x.ID,
+                    name: x.Name,
+                    x.VideoMemorySize
+                    ));
             #endregion
 
             #region DTO

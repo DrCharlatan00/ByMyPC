@@ -23,6 +23,14 @@ namespace ByMyPC.Models.RAMModels
                     x.IsLive
                     ));
 
+            CreateMap<RamDbModel, RDTORAMSmallModel>()
+    .ConstructUsing(x => new RDTORAMSmallModel(
+        x.ID,
+        x.Name,
+        x.Size,
+        x.DDRType
+        ));
+
             CreateMap<RamSmallModel, RDTORAMSmallModel>()
                .ConstructUsing(x => new RDTORAMSmallModel(
                    x.ID,

@@ -4,12 +4,14 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Caching;
 using ByMyPC.Hubs;
 using ByMyPC.Models.RAMModels.DTO;
 using ByMyPC.Models.RAMModels.RDTO;
 using FluentValidation;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.SignalR;
+using System.Data;
 using System.Runtime.InteropServices;
 
 namespace ByMyPC.Services.RamService
@@ -20,15 +22,18 @@ namespace ByMyPC.Services.RamService
             ILogger<RamService> logger,
             IValidator<DTORAMCreate> validatorCreate,
             IMapper mapper,
-            IHubContext<RamHub> hub
+            IHubContext<RamHub> hub,
+            ICacheService cacheService
         ) : IRamService
     {
+        private const string keyVersionCache = "ram:version";
         private readonly IRamRepo repo = repo;
         private readonly IPcRamRepo ramRepo = ramRepo;
         private readonly ILogger<RamService> logger = logger;
         private readonly IValidator<DTORAMCreate> validatorCreate = validatorCreate;
         private readonly IMapper mapper = mapper;
         private readonly IHubContext<RamHub> hub = hub;
+        private readonly ICacheService cacheService = cacheService;
 
         #region Get
         public async Task<IEnumerable<RDTORAMModel>> GetFullAsync(CancellationToken cancellationToken)
@@ -101,6 +106,24 @@ namespace ByMyPC.Services.RamService
 #endif
 
 #if DEBUG
+            logger.LogInformation("try get in cache.......");
+#endif
+
+
+            long vers = await cacheService.GetVersionAsync(keyVersionCache);
+
+            string key = $"ram:v{vers}:page={page}:pageSize={pageSize}";
+
+            var cache = await cacheService.GetAsync<IEnumerable<RDTORAMModel>>(key);
+
+            if (cache is not null) return cache;
+
+#if DEBUG
+            logger.LogInformation("Cache is miss");
+#endif
+
+
+#if DEBUG
             logger.LogInformation("Start pagination in db............");
 #endif
 
@@ -117,10 +140,21 @@ namespace ByMyPC.Services.RamService
                 return null;
             }
 
+
 #if DEBUG
-            logger.LogInformation("Mapping and return data......");
+            logger.LogInformation("Mapping data.......");
 #endif
-            return data.Select(Map).ToList();
+            var mappedData = data.Select(Map).ToList();
+
+
+#if DEBUG
+            logger.LogInformation("Caching......");
+#endif
+            await cacheService.SetAsync(key,mappedData,TimeSpan.FromMinutes(3));
+
+
+
+            return mappedData;
 
         }
 
@@ -132,7 +166,17 @@ namespace ByMyPC.Services.RamService
 #if DEBUG
             logger.LogInformation("CheckParam pass, param  page = {page} pageSize = {pageSize}", page, pageSize);
 #endif
+            long vers = await cacheService.GetVersionAsync(keyVersionCache);
 
+            string key = $"ram:v{vers}:page={page}:pageSize={pageSize}";
+
+            var cache = await cacheService.GetAsync<IEnumerable<RDTORAMSmallModel>>(key);
+
+            if (cache is not null) return cache;
+
+#if DEBUG
+            logger.LogInformation("Cache is miss");
+#endif
 #if DEBUG
             logger.LogInformation("Start pagination in db............");
 #endif
@@ -150,10 +194,22 @@ namespace ByMyPC.Services.RamService
                 return null;
             }
 
+
 #if DEBUG
-            logger.LogInformation("Mapping and return data......");
+            logger.LogInformation("Mapping data.......");
 #endif
-            return data.Select(Map).ToList();
+            var mappedData = data.Select(Map).ToList();
+
+
+#if DEBUG
+            logger.LogInformation("Caching......");
+#endif
+            await cacheService.SetAsync(key, mappedData, TimeSpan.FromMinutes(3));
+
+
+
+            return mappedData;
+
 
         }
 
@@ -163,6 +219,7 @@ namespace ByMyPC.Services.RamService
 #if DEBUG
             logger.LogInformation("CheckParam pass, Param name = {name}", name);
 #endif
+
 
 #if DEBUG
             logger.LogInformation("Start Search in DB.............");
@@ -195,9 +252,22 @@ namespace ByMyPC.Services.RamService
 #endif
 
 #if DEBUG
-            logger.LogInformation("Start Search in DB.............");
+            logger.LogInformation("Try get in cache..........");
+#endif
+            long vers = await cacheService.GetVersionAsync(keyVersionCache);
+            string key = $"rams:{vers}:name={name}:page={page}:pageSize={pageSize}";
+            var cache = await cacheService.GetAsync<IEnumerable<RDTORAMSmallModel>>(key);
+            if (cache is not null) return cache;
+
+
+#if DEBUG
+            logger.LogInformation("cache is miss");
 #endif
 
+
+#if DEBUG
+            logger.LogInformation("Start Search in DB.............");
+#endif
 
             var data = await repo.SearchByNameWithPagAsync(name, page, pageSize, cancellation);
 
@@ -211,7 +281,20 @@ namespace ByMyPC.Services.RamService
                 return null;
             }
 
-            return data.Select(Map).ToList();
+#if DEBUG
+            logger.LogInformation("Mapping.......");
+#endif
+
+
+            List<RDTORAMSmallModel> mappedData = data.Select(Map).ToList();
+
+
+#if DEBUG
+            logger.LogInformation("Caching......");
+#endif
+            await cacheService.SetAsync(key,mappedData,TimeSpan.FromMinutes(3));
+
+            return mappedData;
 
         }
 
@@ -275,6 +358,8 @@ namespace ByMyPC.Services.RamService
             if (ans is null) return null;
 
             var hubWork = hub.Clients.All.SendAsync("RamUpdated",ans.ID);
+            var cacheWork = cacheService.IncrementAsync(keyVersionCache);
+            await Task.WhenAll(hubWork, cacheWork);
             return Map(ans);
 
         }
@@ -300,6 +385,8 @@ namespace ByMyPC.Services.RamService
             logger.LogInformation("Procces create in db end");
 #endif
             var hubWork = hub.Clients.All.SendAsync("RamCreated",id);
+            var cacheWork = cacheService.IncrementAsync(keyVersionCache);
+            await Task.WhenAll(hubWork, cacheWork);
             return id;
 
 
@@ -322,6 +409,8 @@ namespace ByMyPC.Services.RamService
             logger.LogInformation("Item is Removed? = {result}", ans);
 #endif
             var hubWork = hub.Clients.All.SendAsync("RamRemoved", id);
+            var cacheWork = cacheService.IncrementAsync(keyVersionCache);
+            await Task.WhenAll(hubWork, cacheWork);
             return ans;
         }
         #endregion

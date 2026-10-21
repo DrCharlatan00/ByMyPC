@@ -171,4 +171,5 @@ app.MapHub<MotherboardHub>("/motherboard-hub");
 app.MapHub<HDDHub>("/hdd-hub");
 app.MapHub<PSUHub>("/psu-hub");
 app.MapHub<GPUHub>("/gpu-hub");
+app.MapHub<RamHub>("/ram-hub");
 app.Run();

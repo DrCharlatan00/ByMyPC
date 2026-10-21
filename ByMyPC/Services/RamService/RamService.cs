@@ -4,10 +4,12 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Hubs;
 using ByMyPC.Models.RAMModels.DTO;
 using ByMyPC.Models.RAMModels.RDTO;
 using FluentValidation;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
+using Microsoft.AspNetCore.SignalR;
 using System.Runtime.InteropServices;
 
 namespace ByMyPC.Services.RamService
@@ -17,7 +19,8 @@ namespace ByMyPC.Services.RamService
             IPcRamRepo ramRepo,
             ILogger<RamService> logger,
             IValidator<DTORAMCreate> validatorCreate,
-            IMapper mapper
+            IMapper mapper,
+            IHubContext<RamHub> hub
         ) : IRamService
     {
         private readonly IRamRepo repo = repo;
@@ -25,6 +28,7 @@ namespace ByMyPC.Services.RamService
         private readonly ILogger<RamService> logger = logger;
         private readonly IValidator<DTORAMCreate> validatorCreate = validatorCreate;
         private readonly IMapper mapper = mapper;
+        private readonly IHubContext<RamHub> hub = hub;
 
         #region Get
         public async Task<IEnumerable<RDTORAMModel>> GetFullAsync(CancellationToken cancellationToken)
@@ -270,6 +274,7 @@ namespace ByMyPC.Services.RamService
 
             if (ans is null) return null;
 
+            var hubWork = hub.Clients.All.SendAsync("RamUpdated",ans.ID);
             return Map(ans);
 
         }
@@ -294,6 +299,7 @@ namespace ByMyPC.Services.RamService
 #if DEBUG
             logger.LogInformation("Procces create in db end");
 #endif
+            var hubWork = hub.Clients.All.SendAsync("RamCreated",id);
             return id;
 
 
@@ -315,7 +321,7 @@ namespace ByMyPC.Services.RamService
 #if DEBUG
             logger.LogInformation("Item is Removed? = {result}", ans);
 #endif
-
+            var hubWork = hub.Clients.All.SendAsync("RamRemoved", id);
             return ans;
         }
         #endregion
@@ -333,6 +339,7 @@ namespace ByMyPC.Services.RamService
 #if DEBUG
             logger.LogInformation("Attaching end, result = {res}", result);
 #endif
+            if (result) await hub.Clients.All.SendAsync("RamAttached",RamID);
             return result;
 
 
@@ -350,6 +357,7 @@ namespace ByMyPC.Services.RamService
 #if DEBUG
             logger.LogInformation("DeAttaching end, result = {res}", result);
 #endif
+            if (result) await hub.Clients.All.SendAsync("RamDeattached", RamID);
             return result;
 
 

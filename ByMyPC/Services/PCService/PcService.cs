@@ -4,6 +4,7 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Hubs;
 using ByMyPC.Models.CpuModels.RDTO;
 using ByMyPC.Models.GPUModels.RDTO;
 using ByMyPC.Models.HDDModels.RDTO;
@@ -13,6 +14,8 @@ using ByMyPC.Models.PCModels.RDTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using ByMyPC.Models.RAMModels.RDTO;
 using FluentValidation;
+using Microsoft.AspNetCore.SignalR;
+using System.Runtime.InteropServices;
 
 
 namespace ByMyPC.Services.PCService
@@ -22,13 +25,15 @@ namespace ByMyPC.Services.PCService
         IPcRepo repo,
         IMapper mapper,
         IValidator<DTOPCCreateModel> validator,
-        ILogger<PcService> logger
+        ILogger<PcService> logger,
+        IHubContext<PcHub> hub
         ) : IPcService
     {
         private readonly IPcRepo repo = repo;
         private readonly IMapper mapper = mapper;
         private readonly IValidator<DTOPCCreateModel> validator = validator;
         private readonly ILogger<PcService> logger = logger;
+        private readonly IHubContext<PcHub> hub = hub;
 
         #region Get Methods
         public async Task<IEnumerable<RDTOPCModel>> GetFullAsync(CancellationToken cancellationToken)
@@ -237,10 +242,12 @@ namespace ByMyPC.Services.PCService
 #endif
 
 
-            RDTOPCModel? mappedModel = updateModel is not null ? Map(updatedModel!) : null;
+            RDTOPCModel? mappedModel = updatedModel is not null ? Map(updatedModel!) : null;
+
+            var hubWork = hub.Clients.All.SendAsync("PcUpdated",updateModel.id);
 
 #if DEBUG
-            logger.LogInformation("Checl and Mapping end. Result = {@res}", mappedModel);
+            logger.LogInformation("Check and Mapping end. Result = {@res}", mappedModel);
 #endif
 
             return mappedModel;
@@ -278,6 +285,8 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("Creating end");
 #endif
+            var hubWork = hub.Clients.All.SendAsync("PcCreated", res);
+
 
             return res;
         }
@@ -299,6 +308,7 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("End removing, result = {result}", res);
 #endif
+            var hubWork = hub.Clients.All.SendAsync("PcRemoved", id);
 
 
             return res;
@@ -337,7 +347,7 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("Attach is end, result = {res}", result);
 #endif
-
+            var hubWork = hub.Clients.All.SendAsync("PcAttached", idPc);
 
             return result;
         }
@@ -371,6 +381,8 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("Attach is end, result = {res}", result);
 #endif
+            var hubWork = hub.Clients.All.SendAsync("PcDettached", idPc);
+
             return result;
         }
         #endregion

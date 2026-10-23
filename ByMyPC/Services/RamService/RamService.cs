@@ -168,7 +168,7 @@ namespace ByMyPC.Services.RamService
 #endif
             long vers = await cacheService.GetVersionAsync(keyVersionCache);
 
-            string key = $"ram:v{vers}:page={page}:pageSize={pageSize}";
+            string key = $"ram:v{vers}:page={page}:pageSize={pageSize}:small";
 
             var cache = await cacheService.GetAsync<IEnumerable<RDTORAMSmallModel>>(key);
 

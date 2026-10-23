@@ -84,8 +84,12 @@ builder.Services.AddHealthChecks().AddNpgSql(
         builder.Configuration.GetConnectionString("postgresMainDb")!,
         healthQuery: "SELECT 1;",
         name: "ByMyPC",
-        tags: ["db","ready"]
-        
+        tags: ["db", "ready"]
+
+    ).AddRedis(
+        builder.Configuration.GetConnectionString("RedisMain")!,
+        name: "Redis",
+        tags: ["cache","ready"]
     );
 
 
@@ -165,7 +169,7 @@ app.UseAuthorization();
 app.UseMiddleware<MiddlewareExceptions>();
 
 app.MapControllers();
-
+#region Hubs 
 app.MapHub<CpuHub>("/cpu-hub");
 app.MapHub<MotherboardHub>("/motherboard-hub");
 app.MapHub<HDDHub>("/hdd-hub");
@@ -173,4 +177,24 @@ app.MapHub<PSUHub>("/psu-hub");
 app.MapHub<GPUHub>("/gpu-hub");
 app.MapHub<RamHub>("/ram-hub");
 app.MapHub<PcHub>("/pc-hub");
+#endregion
+
+#region Healths
+app.MapHealthChecks("/health");
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
+app.MapHealthChecks("/health/redis", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Name == "cache"
+});
+
+app.MapHealthChecks("/health/db", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Name == "db"
+});
+#endregion
 app.Run();

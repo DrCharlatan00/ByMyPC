@@ -3,6 +3,7 @@ using ByMyPc.Postgresql.Repository;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Caching;
 using ByMyPC.Hubs;
+using ByMyPC.Metrics;
 using ByMyPC.Middlewares;
 using ByMyPC.Models.CpuModels;
 using ByMyPC.Models.CpuModels.DTO;
@@ -27,6 +28,7 @@ using ByMyPC.Services.PSUService;
 using ByMyPC.Services.RamService;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Metrics;
 using Scalar.AspNetCore;
 using Serilog;
 using StackExchange.Redis;
@@ -119,6 +121,18 @@ builder.Services.AddScoped<IRamService, RamService>();
 builder.Services.AddScoped<IPcRepo, PcRepo>();
 builder.Services.AddScoped<IPcService, PcService>();
 
+#region Metrics
+
+builder.Services.AddSingleton<DependencyHealthMetrics>();
+
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DependencyHealthMetrics>());
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddMeter("ByMyPc.Health")
+        .AddPrometheusExporter());
+#endregion
 
 #region Mappers and Validators
 builder.Services.AddAutoMapper(prf => {
@@ -162,7 +176,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+app.UseWhen(
+    context => context.Request.Path != "/metrics",
+    branche => branche.UseHttpsRedirection()
+    );
 
 app.UseAuthorization();
 
@@ -178,6 +195,8 @@ app.MapHub<GPUHub>("/gpu-hub");
 app.MapHub<RamHub>("/ram-hub");
 app.MapHub<PcHub>("/pc-hub");
 #endregion
+
+app.MapPrometheusScrapingEndpoint();
 
 #region Healths
 app.MapHealthChecks("/health");
@@ -197,4 +216,4 @@ app.MapHealthChecks("/health/db", new Microsoft.AspNetCore.Diagnostics.HealthChe
     Predicate = check => check.Name == "db"
 });
 #endregion
-app.Run();
+ app.Run();

@@ -22,6 +22,7 @@ using ByMyPC.Models.RAMModels.DTO;
 using ByMyPC.Services.CpuService;
 using ByMyPC.Services.GPUService;
 using ByMyPC.Services.HDDService;
+using ByMyPC.Services.Kafka;
 using ByMyPC.Services.MotherboardService;
 using ByMyPC.Services.PCService;
 using ByMyPC.Services.PSUService;
@@ -120,6 +121,9 @@ builder.Services.AddScoped<IRamService, RamService>();
 
 builder.Services.AddScoped<IPcRepo, PcRepo>();
 builder.Services.AddScoped<IPcService, PcService>();
+
+
+builder.Services.AddSingleton<KafkaProducerService>();
 
 #region Metrics
 

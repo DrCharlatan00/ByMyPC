@@ -203,12 +203,12 @@ namespace ByMyPc.Postgresql.Repository
 
             old.Name = model.Name ?? old.Name;
 
-            var payload = JsonSerializer.Serialize(new {
-                eventType = "PCUpdated",
-                pcId = old.ID,
-                name = old.Name,
-                occurredAt = DateTimeOffset.UtcNow
-            });
+            var payload = new PayloadKafka(
+                 "PCUpdated",
+                 old.ID,
+                 old.Name,
+                 DateTimeOffset.UtcNow
+            ).Convert2Json();
 
             var outboxMess = new OutboxMessage
             {
@@ -246,13 +246,12 @@ namespace ByMyPc.Postgresql.Repository
                 Name = model.Name is null ? "N?A" : model.Name,
             };
 
-            var payload = JsonSerializer.Serialize(new
-            {
-                eventType = "PCCreated",
-                pcId = newModel.ID,
-                name = newModel.Name,
-                occurredAt = DateTimeOffset.UtcNow
-            });
+            var payload = new PayloadKafka(
+                "PCCreated",
+                newModel.ID,
+                newModel.Name,
+                DateTimeOffset.UtcNow
+                ).Convert2Json();
 
             var outboxMessage = new OutboxMessage
             {
@@ -286,12 +285,12 @@ namespace ByMyPc.Postgresql.Repository
             var old = await context.PCs.FirstOrDefaultAsync(x => x.ID == id);
             if (old is null) return false;
 
-            var payload = JsonSerializer.Serialize(new {
-                eventType = "PCRemoved",
-                pcId = id,
-                name = old.Name,
-                occurredAt = DateTimeOffset.UtcNow
-            });
+            var payload = new PayloadKafka(
+                "PCRemoved",
+                id,
+                old.Name,
+                DateTimeOffset.UtcNow
+            ).Convert2Json();
 
             var outboxMess = new OutboxMessage {
                 EventType = "PCRemoved",

@@ -19,6 +19,7 @@ using ByMyPC.Models.PSUModels;
 using ByMyPC.Models.PSUModels.DTO;
 using ByMyPC.Models.RAMModels;
 using ByMyPC.Models.RAMModels.DTO;
+using ByMyPC.Services.BackgroudServices;
 using ByMyPC.Services.CpuService;
 using ByMyPC.Services.GPUService;
 using ByMyPC.Services.HDDService;
@@ -122,8 +123,11 @@ builder.Services.AddScoped<IRamService, RamService>();
 builder.Services.AddScoped<IPcRepo, PcRepo>();
 builder.Services.AddScoped<IPcService, PcService>();
 
+#region Kafka
+builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
 
-builder.Services.AddSingleton<KafkaProducerService>();
+builder.Services.AddHostedService<OutboxBackgroundService>();
+#endregion
 
 #region Metrics
 
@@ -181,7 +185,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseWhen(
-    context => context.Request.Path != "/metrics",
+    context => 
+        context.Request.Path != "/metrics"
+        && context.Request.Path != "/test-kafka-create"
+        && context.Request.Path != "/return-err-code",
+
     branche => branche.UseHttpsRedirection()
     );
 
@@ -220,4 +228,33 @@ app.MapHealthChecks("/health/db", new Microsoft.AspNetCore.Diagnostics.HealthChe
     Predicate = check => check.Name == "db"
 });
 #endregion
- app.Run();
+
+#if DEBUG
+app.MapGet("/return-err-code", () => Results.InternalServerError());
+
+app.MapPost("/test-kafka-create", async (KafkaProducerService kafkaProducer) => {
+    var message = new {
+        ComponentID = Guid.NewGuid(),
+        Name = "RX 470",
+        CreateAt = DateTime.UtcNow
+    };
+
+    var json = System.Text.Json.JsonSerializer.Serialize(message);
+
+    await kafkaProducer.SendMessageAsync(
+            "component-created",
+            message.ComponentID.ToString(),
+            json
+        );
+
+    return Results.Ok(
+            new {
+                Message = "Message send",
+                Data = message,
+                SendJSON = json
+            }
+        );
+        
+});
+#endif
+app.Run();

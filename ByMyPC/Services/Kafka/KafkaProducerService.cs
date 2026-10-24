@@ -2,7 +2,7 @@
 
 namespace ByMyPC.Services.Kafka
 {
-    public class KafkaProducerService : IDisposable
+    public class KafkaProducerService : IDisposable, IKafkaProducerService
     {
         private readonly IProducer<string, string> producer;
 
@@ -10,16 +10,34 @@ namespace ByMyPC.Services.Kafka
         {
             var bootsrapServers = configuration["Kafka:BootsrapServers"] ?? "localhost:9094";
 
-            var conf = new ProducerConfig {
+            var conf = new ProducerConfig
+            {
                 BootstrapServers = bootsrapServers,
             };
 
-            this.producer = new ProducerBuilder<string,string>(conf).Build();
+            this.producer = new ProducerBuilder<string, string>(conf).Build();
         }
 
         public async Task SendMessageAsync(string topic,
                                            string key,
-                                           string message)
+                                           string message,CancellationToken cancellationToken = default)
+        {
+            var KafkaMess = new Message<string, string>
+            {
+                Key = key,
+                Value = message
+            };
+
+            await producer.ProduceAsync(
+                    topic,
+                    KafkaMess,
+                    cancellationToken
+                );
+        }
+
+        public async Task SendMessageAsync(string topic,
+                                       string key,
+                                       string message)
         {
             var KafkaMess = new Message<string, string>
             {

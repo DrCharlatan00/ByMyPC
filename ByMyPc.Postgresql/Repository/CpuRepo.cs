@@ -128,6 +128,7 @@ namespace ByMyPc.Postgresql.Repository
 
         public async Task<CpuDbModel?> UpdateAsync(Guid id, CpuUpdateModel model)
         {
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 var old = await context.CPUs.FirstOrDefaultAsync(x => x.ID == id);
@@ -137,6 +138,8 @@ namespace ByMyPc.Postgresql.Repository
                 old.Count_Cores = model.Count_Cores != 0 ? model.Count_Cores : old.Count_Cores;
                 old.Socket = (model.Socket is not null || model.Socket == "skip") ? model.Socket : old.Socket;
                 old.Name = (model.Name is not null || model.Name == "skip") ? model.Name : old.Name;
+                
+                
                 await context.SaveChangesAsync();
                 return old;
             }

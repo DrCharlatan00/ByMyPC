@@ -138,18 +138,36 @@ namespace ByMyPc.Postgresql.Repository
                 old.Count_Cores = model.Count_Cores != 0 ? model.Count_Cores : old.Count_Cores;
                 old.Socket = (model.Socket is not null || model.Socket == "skip") ? model.Socket : old.Socket;
                 old.Name = (model.Name is not null || model.Name == "skip") ? model.Name : old.Name;
-                
-                
+
+                var payload = new PayloadKafka(
+                        "CPUUpdated",
+                        old.ID,
+                        old.Name,
+                        DateTimeOffset.UtcNow
+                    ).Convert2Json();
+
+                var outmess = new OutboxMessage
+                {
+                    Payload = payload,
+                    EventType = "CPUUpdated",
+                    AggregateId = old.ID.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    Topic = "cpu-topic"
+                };
+                await context.OutboxMessages.AddAsync(outmess);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return old;
             }
             catch(Exception ex) {
+                await transaction.RollbackAsync();
                 throw new UpdateOperationException<CpuDbModel>(ex.Message,ex);
             }
         }
 
         public async ValueTask<Guid> CreateAsync(CpuCreateModel model)
         {
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 CpuDbModel cpuDb = new();
@@ -159,12 +177,31 @@ namespace ByMyPc.Postgresql.Repository
                 cpuDb.Socket = model.Socket;
                 cpuDb.Name = model.Name;
                 cpuDb.ID = Guid.NewGuid();
+
+                var payload = new PayloadKafka(
+                        "PCCreated",
+                        cpuDb.ID,
+                        cpuDb.Name,
+                        DateTimeOffset.UtcNow
+                    ).Convert2Json();
+
+                var kafkaMess = new OutboxMessage {
+                    EventType = "PCCreated",
+                    Topic = "cpu-topic",
+                    Payload = payload,
+                    CreatedAt = DateTime.UtcNow,
+                    AggregateId = cpuDb.ID.ToString()
+                };
+                await context.OutboxMessages.AddAsync(kafkaMess);
                 await context.CPUs.AddAsync(cpuDb);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
                 return cpuDb.ID;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new CreateOperationException<CpuDbModel>(ex.Message, ex);
             }
         }
@@ -173,13 +210,33 @@ namespace ByMyPc.Postgresql.Repository
         {
             CpuDbModel? removedmodel = await context.CPUs.FirstOrDefaultAsync(x => x.ID == id);
             if (removedmodel is null) return false;
+            await using var transaction = await context.Database.BeginTransactionAsync();
+
+            var payload = new PayloadKafka(
+                    "CPURemoved",
+                    id,
+                    removedmodel.Name,
+                    DateTimeOffset.UtcNow
+                ).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage {
+                EventType = "PCCreated",
+                Topic = "cpu-topic",
+                Payload = payload,
+                CreatedAt = DateTime.UtcNow,
+                AggregateId = id.ToString()
+            };
+
             try
             {
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 context.CPUs.Remove(removedmodel);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new RemoveOperationException<CpuDbModel>($"Item CPU {id} not removed",ex);
             }
             return true;

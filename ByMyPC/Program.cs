@@ -3,6 +3,7 @@ using ByMyPc.Postgresql.Repository;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Caching;
 using ByMyPC.Hubs;
+using ByMyPC.Metrics;
 using ByMyPC.Middlewares;
 using ByMyPC.Models.CpuModels;
 using ByMyPC.Models.CpuModels.DTO;
@@ -27,6 +28,7 @@ using ByMyPC.Services.PSUService;
 using ByMyPC.Services.RamService;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Metrics;
 using Scalar.AspNetCore;
 using Serilog;
 using StackExchange.Redis;
@@ -84,8 +86,12 @@ builder.Services.AddHealthChecks().AddNpgSql(
         builder.Configuration.GetConnectionString("postgresMainDb")!,
         healthQuery: "SELECT 1;",
         name: "ByMyPC",
-        tags: ["db","ready"]
-        
+        tags: ["db", "ready"]
+
+    ).AddRedis(
+        builder.Configuration.GetConnectionString("RedisMain")!,
+        name: "Redis",
+        tags: ["cache","ready"]
     );
 
 
@@ -115,6 +121,18 @@ builder.Services.AddScoped<IRamService, RamService>();
 builder.Services.AddScoped<IPcRepo, PcRepo>();
 builder.Services.AddScoped<IPcService, PcService>();
 
+#region Metrics
+
+builder.Services.AddSingleton<DependencyHealthMetrics>();
+
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DependencyHealthMetrics>());
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddMeter("ByMyPc.Health")
+        .AddPrometheusExporter());
+#endregion
 
 #region Mappers and Validators
 builder.Services.AddAutoMapper(prf => {
@@ -158,14 +176,17 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+app.UseWhen(
+    context => context.Request.Path != "/metrics",
+    branche => branche.UseHttpsRedirection()
+    );
 
 app.UseAuthorization();
 
 app.UseMiddleware<MiddlewareExceptions>();
 
 app.MapControllers();
-
+#region Hubs 
 app.MapHub<CpuHub>("/cpu-hub");
 app.MapHub<MotherboardHub>("/motherboard-hub");
 app.MapHub<HDDHub>("/hdd-hub");
@@ -173,4 +194,26 @@ app.MapHub<PSUHub>("/psu-hub");
 app.MapHub<GPUHub>("/gpu-hub");
 app.MapHub<RamHub>("/ram-hub");
 app.MapHub<PcHub>("/pc-hub");
-app.Run();
+#endregion
+
+app.MapPrometheusScrapingEndpoint();
+
+#region Healths
+app.MapHealthChecks("/health");
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
+app.MapHealthChecks("/health/redis", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Name == "cache"
+});
+
+app.MapHealthChecks("/health/db", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Name == "db"
+});
+#endregion
+ app.Run();

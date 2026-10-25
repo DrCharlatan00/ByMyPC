@@ -28,13 +28,31 @@ namespace ByMyPc.Postgresql.Repository
             }
 
             PcHddDbModel newPcHdd = new PcHddDbModel(PcId, HDDId);
+
+            var payloadAttach = new PayloadKafka("HDDAttached",
+                                                       HDD.ID,
+                                                       HDD.Name,
+                                                       DateTimeOffset.UtcNow).Convert2Json();
+
+            var kafkaMessageAttach = new OutboxMessage
+            {
+                EventType = "HDDAttached",
+                Topic = "hdd-topic",
+                CreatedAt = DateTime.UtcNow,
+                AggregateId = HDD.ID.ToString(),
+                Payload = payloadAttach
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 await context.PcHdds.AddAsync(newPcHdd);
+                await context.OutboxMessages.AddAsync(kafkaMessageAttach);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new OperationsException<PcHddDbModel>("In Attach HDD to PC operation exception",false,ex);
             }
             return true;
@@ -51,13 +69,31 @@ namespace ByMyPc.Postgresql.Repository
             var PcHDD = await context.PcHdds.FirstOrDefaultAsync(x => (x.PcId == PcId || x.HddId == HDDId));
             if (PcHDD is null) return false;
 
+            var payloadAttach = new PayloadKafka("HDDDeattached",
+                                           HDD.ID,
+                                           HDD.Name,
+                                           DateTimeOffset.UtcNow).Convert2Json();
+
+            var kafkaMessageAttach = new OutboxMessage
+            {
+                EventType = "HDDDeattached",
+                Topic = "hdd-topic",
+                CreatedAt = DateTime.UtcNow,
+                AggregateId = HDD.ID.ToString(),
+                Payload = payloadAttach
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
+
             try
             {
                 context.PcHdds.Remove(PcHDD);
+                await context.OutboxMessages.AddAsync(kafkaMessageAttach);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new OperationsException<PcHddDbModel>("In DeAttach HDD to PC operation exception", false, ex);
             }
             return true;

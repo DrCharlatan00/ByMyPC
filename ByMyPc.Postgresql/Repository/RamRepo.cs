@@ -6,6 +6,7 @@ using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 
 
 namespace ByMyPc.Postgresql.Repository
@@ -137,12 +138,29 @@ namespace ByMyPc.Postgresql.Repository
             {
                 throw new UpdateOperationException<RamUpdateModel>("Wrong Model", ex);
             }
+            var payload = new PayloadKafka("RAMUpdated",
+                   componentID: old.ID,
+                   name: old.Name,
+                   occurredAt: DateTimeOffset.UtcNow).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "RAMUpdated",
+                Topic = "ram-topic",
+                AggregateId = old.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new UpdateOperationException<RamDbModel>("Updating fail", ex); ;
             }
             return old;
@@ -161,14 +179,30 @@ namespace ByMyPc.Postgresql.Repository
                 Frequency = model.Frequency,
                 IsLive = model.IsLive,
             };
+            var payload = new PayloadKafka("RAMCreated",
+                                           componentID: ramDb.ID,
+                                           name: ramDb.Name,
+                                           occurredAt: DateTimeOffset.UtcNow).Convert2Json();
 
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "RAMCreated",
+                Topic = "ram-topic",
+                AggregateId = ramDb.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 await context.RAMs.AddAsync(ramDb);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new CreateOperationException<RamDbModel>("Create is fail", ex);
             }
             return ramDb.ID;
@@ -180,14 +214,30 @@ namespace ByMyPc.Postgresql.Repository
         {
             var rem = await context.RAMs.FirstOrDefaultAsync(x => x.ID == id);
             if (rem == null) return false;
+            var payload = new PayloadKafka("RAMRemoved",
+                               componentID: rem.ID,
+                               name: rem.Name,
+                               occurredAt: DateTimeOffset.UtcNow).Convert2Json();
 
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "RAMRemoved",
+                Topic = "ram-topic",
+                AggregateId = rem.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 context.RAMs.Remove(rem);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new RemoveOperationException<RamDbModel>("Remove is failed", ex);
             }
             return true;

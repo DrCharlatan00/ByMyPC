@@ -17,6 +17,8 @@ namespace ByMyPc.Postgresql.Repository
     {
         private readonly PgContext context = context;
 
+        #region Get
+
         public async IAsyncEnumerable<MotherboardSmallDbModel> GetCardMotherboardDbAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in context.Motherboards.AsNoTracking()
@@ -112,9 +114,14 @@ namespace ByMyPc.Postgresql.Repository
                 .ToListAsync(cancellationToken);
 
         }
+        #endregion
+
+        #region Update
+
 
         public async Task<MotherboardDbModel?> UpdateAsync(MotherboardUpdateModel model)
         {
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 MotherboardDbModel? old = await context.Motherboards.FirstOrDefaultAsync(x => x.ID == model.ID);
@@ -122,17 +129,39 @@ namespace ByMyPc.Postgresql.Repository
                 old.Name = !string.IsNullOrWhiteSpace(model.Name) ? model.Name : old.Name;
                 old.Socket = !string.IsNullOrWhiteSpace(model.Socket) ? model.Socket : old.Socket;
                 old.IsLive = model.IsLive;
+
+                var payload = new PayloadKafka(
+                        "MBUpdated",
+                        old.ID,
+                        old.Name,
+                        DateTimeOffset.UtcNow
+                    ).Convert2Json();
+
+                var kafkaMessage = new OutboxMessage {
+                    EventType = "MBUpdated",
+                    Topic = "mb-topic",
+                    AggregateId = old.ID.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    Payload = payload
+                };
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return old;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new UpdateOperationException<MotherboardDbModel>(ex.Message, ex);
             }
         }
+        #endregion
+
+        #region Create
 
         public async ValueTask<Guid> CreateAsync(MotherboardCreateModel model)
         {
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 MotherboardDbModel newModel = new();
@@ -145,30 +174,72 @@ namespace ByMyPc.Postgresql.Repository
                 newModel.MaxRamSlot = model.MaxRamSlot;
                 newModel.IsLive = model.IsLive;
                 newModel.VideoSlot = model.VideoSlot;
+                var payload = new PayloadKafka("MBCreated",
+                                               newModel.ID,
+                                               newModel.Name,
+                                               DateTimeOffset.UtcNow).Convert2Json();
+
+                var kafkaMessage = new OutboxMessage
+                {
+                    EventType = "MBCreated",
+                    Topic = "mb-topic",
+                    AggregateId = newModel.ID.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    Payload = payload
+                };
+
+                
                 await context.Motherboards.AddAsync(newModel);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return newModel.ID;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new CreateOperationException<MotherboardCreateModel>(ex.Message, ex);
             }
         }
+        #endregion
+
+        #region Remove
 
         public async ValueTask<bool> RemoveAsync(Guid id)
         {
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 MotherboardDbModel? model = await context.Motherboards.FirstOrDefaultAsync(x => x.ID == x.ID);
                 if (model is null) return false;
+
+                var payload = new PayloadKafka("MBRemoved",
+                               model.ID,
+                               model.Name,
+                               DateTimeOffset.UtcNow).Convert2Json();
+
+                var kafkaMessage = new OutboxMessage
+                {
+                    EventType = "MBRemoved",
+                    Topic = "mb-topic",
+                    AggregateId = model.ID.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    Payload = payload
+                };
+
                 context.Motherboards.Remove(model);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new RemoveOperationException<MotherboardDbModel>("Item not found, remove aborted", ex);
             }
             return true;
         }
+        #endregion
+
     }
 }

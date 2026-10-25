@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 
 namespace ByMyPc.Postgresql.Repository
@@ -133,18 +134,38 @@ namespace ByMyPc.Postgresql.Repository
 
             if (old is null) return null;
 
+            await using var transaction = await context.Database.BeginTransactionAsync();
             old.Name = model.Name ?? old.Name;
             old.VideoMemorySize = model.VideoMemorySize ?? old.VideoMemorySize;
             old.VideoSlot = model.VideoSlot ?? old.VideoSlot;
             old.MemoryBus = model.MemoryBus ?? old.MemoryBus;
             old.TypeConnector = model.TypeConnector ?? old.TypeConnector;
             old.TypeMemory = model.TypeMemory ?? old.TypeMemory;
+
+            var payload = new PayloadKafka(
+                    eventType: "GPUUpdated",
+                    componentID: old.ID,
+                    name: old.Name,
+                    occurredAt: DateTimeOffset.UtcNow
+                ).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage {
+                EventType = "GPUUpdated",
+                Topic = "gpu-topic",
+                AggregateId = old.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Payload = payload
+                
+            };
             try
             {
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new UpdateOperationException<GpuDbModel>("Can't Save new model", ex);
             }
             return old;
@@ -167,13 +188,31 @@ namespace ByMyPc.Postgresql.Repository
                 VideoSlot = model.VideoSlot,
             };
 
+            var payload = new PayloadKafka(
+                    "GPUCreated",
+                    gpuDbModel.ID,
+                    gpuDbModel.Name,
+                    DateTimeOffset.UtcNow
+                ).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage {
+                EventType = "GPUCreated",
+                AggregateId = gpuDbModel.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Topic = "gpu-topic",
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.GPUs.AddAsync(gpuDbModel);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new CreateOperationException<GpuDbModel>("Can;t save new model", ex);
             }
             return gpuDbModel.ID;
@@ -187,14 +226,33 @@ namespace ByMyPc.Postgresql.Repository
             var item = await context.GPUs.FirstOrDefaultAsync(x => x.ID == id);
             if (item is null) return false;
 
+            var payload = new PayloadKafka(
+        "GPURemoved",
+        item.ID,
+        item.Name,
+        DateTimeOffset.UtcNow
+    ).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "GPURemoved",
+                AggregateId = item.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Topic = "gpu-topic",
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 context.GPUs.Remove(item);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return true;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new RemoveOperationException<GpuDbModel>("Item not removed", ex);
             }
         }

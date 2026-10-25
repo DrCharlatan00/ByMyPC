@@ -6,6 +6,7 @@ using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Caching;
 using ByMyPC.Hubs;
+using ByMyPC.Models;
 using ByMyPC.Models.CpuModels.RDTO;
 using ByMyPC.Models.GPUModels.RDTO;
 using ByMyPC.Models.HDDModels.RDTO;
@@ -14,9 +15,11 @@ using ByMyPC.Models.PCModels.DTO;
 using ByMyPC.Models.PCModels.RDTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using ByMyPC.Models.RAMModels.RDTO;
+using ByMyPC.Services.Kafka;
 using FluentValidation;
 using Microsoft.AspNetCore.SignalR;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 
 namespace ByMyPC.Services.PCService
@@ -28,7 +31,8 @@ namespace ByMyPC.Services.PCService
         IValidator<DTOPCCreateModel> validator,
         ILogger<PcService> logger,
         IHubContext<PcHub> hub,
-        ICacheService cacheService
+        ICacheService cacheService,
+        IKafkaProducerService kafkaProducerService
         ) : IPcService
     {
         const string keyVersion = "pc:version";
@@ -39,6 +43,7 @@ namespace ByMyPC.Services.PCService
         private readonly ILogger<PcService> logger = logger;
         private readonly IHubContext<PcHub> hub = hub;
         private readonly ICacheService cacheService = cacheService;
+        private readonly IKafkaProducerService kafkaProducerService = kafkaProducerService;
 
         #region Get Methods
         public async Task<IEnumerable<RDTOPCModel>> GetFullAsync(CancellationToken cancellationToken)
@@ -333,6 +338,7 @@ namespace ByMyPC.Services.PCService
 
 
             RDTOPCModel? mappedModel = updatedModel is not null ? Map(updatedModel!) : null;
+            if (mappedModel is null) return null;
 
             var hubWork = hub.Clients.All.SendAsync("PcUpdated",updateModel.id);
             var cacheWork = cacheService.IncrementAsync(keyVersion);
@@ -385,6 +391,7 @@ namespace ByMyPC.Services.PCService
             var hubWork = hub.Clients.All.SendAsync("PcCreated", res);
             var cacheWork = cacheService.IncrementAsync(keyVersion);
 
+
 #if DEBUG
             logger.LogInformation("Start Side Services");
 #endif
@@ -412,13 +419,14 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("End removing, result = {result}", res);
 #endif
+            if (!res) return false;
+
             var hubWork = hub.Clients.All.SendAsync("PcRemoved", id);
             var cacheWork = cacheService.IncrementAsync(keyVersion);
 
 #if DEBUG
             logger.LogInformation("Start Side Services");
 #endif
-
 
             await Task.WhenAll(hubWork, cacheWork);
 

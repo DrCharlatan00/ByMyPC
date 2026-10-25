@@ -133,7 +133,6 @@ namespace ByMyPc.Postgresql.Repository
         #region Update
         public async Task<PSUDbModel?> UpdateAsync(PSUUpdateModel model)
         {
-
             var old = await context.Psu.FirstOrDefaultAsync(x => x.ID == model.id);
             if (old is null) return null;
             try
@@ -144,18 +143,38 @@ namespace ByMyPc.Postgresql.Repository
                 old.IsLive = model.IsLive;
                 old.IsModular = model.IsModular ?? old.IsModular;
                 old.IsСertified = model.IsCertified ?? old.IsСertified;
+
+  
+
             }
             catch (Exception ex)
             {
                 throw new UpdateOperationException<PSUUpdateModel>("Can't change params", ex);
             }
+            var payload = new PayloadKafka("PSUUpdated",
+                                           componentID: old.ID,
+                                           name: old.Name,
+                                           occurredAt: DateTimeOffset.UtcNow).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "PSUUpdated",
+                Topic = "psu-topic",
+                AggregateId = old.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return old;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new UpdateOperationException<PSUDbModel>("Update is failed", ex);
             }
 
@@ -175,14 +194,31 @@ namespace ByMyPc.Postgresql.Repository
                 IsСertified = model.IsCertified,
             };
 
+            var payload = new PayloadKafka("PSUCreated",
+                               componentID: NewPsu.ID,
+                               name: NewPsu.Name,
+                               occurredAt: DateTimeOffset.UtcNow).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "PSUUpdated",
+                Topic = "psu-topic",
+                AggregateId = NewPsu.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 await context.Psu.AddAsync(NewPsu);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return NewPsu.ID;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new CreateOperationException<PSUDbModel>("Can't Create Model in db", ex);
             }
         }
@@ -193,14 +229,31 @@ namespace ByMyPc.Postgresql.Repository
         {
             var rm = await context.Psu.FirstOrDefaultAsync(x => x.ID == id);
             if (rm is null) return false;
+            var payload = new PayloadKafka("PSURemoved",
+                               componentID: rm.ID,
+                               name: rm.Name,
+                               occurredAt: DateTimeOffset.UtcNow).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "PSURemoved",
+                Topic = "psu-topic",
+                AggregateId = rm.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 context.Psu.Remove(rm);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return true;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new RemoveOperationException<PSUDbModel>("Item not removed", ex);
             }
         }

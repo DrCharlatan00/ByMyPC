@@ -44,5 +44,7 @@ namespace ByMyPC.Caching
             var val = await database.StringGetAsync(key);
             return val.HasValue ? (long)val : 1;
         }
+
+
     }
 }

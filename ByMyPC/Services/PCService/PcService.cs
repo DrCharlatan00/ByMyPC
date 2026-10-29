@@ -4,6 +4,9 @@ using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.CRUDModel.SmallModels;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
+using ByMyPC.Caching;
+using ByMyPC.Hubs;
+using ByMyPC.Models;
 using ByMyPC.Models.CpuModels.RDTO;
 using ByMyPC.Models.GPUModels.RDTO;
 using ByMyPC.Models.HDDModels.RDTO;
@@ -12,7 +15,11 @@ using ByMyPC.Models.PCModels.DTO;
 using ByMyPC.Models.PCModels.RDTO;
 using ByMyPC.Models.PSUModels.RDTO;
 using ByMyPC.Models.RAMModels.RDTO;
+using ByMyPC.Services.Kafka;
 using FluentValidation;
+using Microsoft.AspNetCore.SignalR;
+using System.Runtime.InteropServices;
+using System.Text.Json;
 
 
 namespace ByMyPC.Services.PCService
@@ -22,13 +29,21 @@ namespace ByMyPC.Services.PCService
         IPcRepo repo,
         IMapper mapper,
         IValidator<DTOPCCreateModel> validator,
-        ILogger<PcService> logger
+        ILogger<PcService> logger,
+        IHubContext<PcHub> hub,
+        ICacheService cacheService,
+        IKafkaProducerService kafkaProducerService
         ) : IPcService
     {
+        const string keyVersion = "pc:version";
+
         private readonly IPcRepo repo = repo;
         private readonly IMapper mapper = mapper;
         private readonly IValidator<DTOPCCreateModel> validator = validator;
         private readonly ILogger<PcService> logger = logger;
+        private readonly IHubContext<PcHub> hub = hub;
+        private readonly ICacheService cacheService = cacheService;
+        private readonly IKafkaProducerService kafkaProducerService = kafkaProducerService;
 
         #region Get Methods
         public async Task<IEnumerable<RDTOPCModel>> GetFullAsync(CancellationToken cancellationToken)
@@ -94,6 +109,21 @@ namespace ByMyPC.Services.PCService
 
 
 #if DEBUG
+            logger.LogInformation("Try get in cache..........");
+#endif
+            long version = await cacheService.GetVersionAsync(keyVersion);
+
+            string key = $"pc:v{version}:page={page}:pageSize={pageSize}";
+            var cache = await cacheService.GetAsync<IEnumerable<RDTOPCModel>>(key);
+            if (cache is not null) return cache;
+
+
+#if DEBUG
+            logger.LogInformation("cache miss");
+#endif
+
+
+#if DEBUG
             logger.LogInformation("Start get Full Paginated in db................");
 #endif
 
@@ -103,9 +133,10 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
 #endif
-
-
-            return data is not null ? data.Select(Map).ToList() : null;
+            if (data is null) return Enumerable.Empty<RDTOPCModel>() ;
+            List<RDTOPCModel> mappedData = data.Select(Map).ToList();
+            await cacheService.SetAsync(key, mappedData, TimeSpan.FromMinutes(3));
+            return mappedData;
         }
 
         public async Task<IEnumerable<RDTOPCSmallModel>?> GetSmallPaginatedAsync(int page, int pageSize, CancellationToken cancellationToken)
@@ -114,6 +145,12 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("CheckParam pass, param  page = {page} pageSize = {pageSize}", page, pageSize);
 #endif
+            long version = await cacheService.GetVersionAsync(keyVersion);
+
+            string key = $"pc:v{version}:page={page}:pageSize={pageSize}:small";
+            var cache = await cacheService.GetAsync<IEnumerable<RDTOPCSmallModel>>(key);
+            if (cache is not null) return cache;
+
 #if DEBUG
             logger.LogInformation("Start get Small Paginated in db................");
 #endif
@@ -121,7 +158,10 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
 #endif
-            return data is not null ? data.Select(Map).ToList() : null;
+            if (data is null) return Enumerable.Empty<RDTOPCSmallModel>();
+            List<RDTOPCSmallModel> mappedData = data.Select(Map).ToList();
+            await cacheService.SetAsync(key, mappedData, TimeSpan.FromMinutes(3));
+            return mappedData;
         }
 
         public async Task<IEnumerable<RDTOPCModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken)
@@ -131,6 +171,22 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("CheckParam pass, param name = {name}", name);
 #endif
+
+#if DEBUG
+            logger.LogInformation("try get in cache....");
+#endif
+            long version = await cacheService.GetVersionAsync(keyVersion);
+
+            string key = $"pc:v{version}:name={name}";
+
+            var cache = await cacheService.GetAsync<IEnumerable<RDTOPCModel>>(key);
+            if (cache is not null) return cache;
+
+
+#if DEBUG
+            logger.LogInformation("cache is miss");
+#endif
+
 
 
 #if DEBUG
@@ -144,9 +200,23 @@ namespace ByMyPC.Services.PCService
             logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
 #endif
 
+            if (data is null) return Enumerable.Empty<RDTOPCModel>();
+
+#if DEBUG
+            logger.LogInformation("Mapping...");
+#endif
 
 
-            return data is not null ? data.Select(Map).ToList() : null;
+            var mapped = data.Select(Map).ToList();
+
+
+#if DEBUG
+            logger.LogInformation("Caching....");
+#endif
+            await cacheService.SetAsync(key,mapped,TimeSpan.FromMinutes(3));
+
+            return mapped;
+
         }
 
         public async Task<IEnumerable<RDTOPCSmallModel>?> SearchByNamePaginatedAsync(string name, int page, int pageSize, CancellationToken cancellationToken)
@@ -158,6 +228,21 @@ namespace ByMyPC.Services.PCService
 #endif
 
 #if DEBUG
+            logger.LogInformation("try get in cache....");
+#endif
+            long version = await cacheService.GetVersionAsync(keyVersion);
+
+            string key = $"pc:v{version}:name={name}:page={page}:pageSize={pageSize}";
+
+            var cache = await cacheService.GetAsync<IEnumerable<RDTOPCSmallModel>>(key);
+            if (cache is not null) return cache;
+
+
+#if DEBUG
+            logger.LogInformation("cache is miss");
+#endif
+
+#if DEBUG
             logger.LogInformation("Start Search by name in db....................");
 #endif
 
@@ -166,8 +251,23 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
 #endif
+            if (data is null) return Enumerable.Empty<RDTOPCSmallModel>();
 
-            return data is not null ? data.Select(Map).ToList() : null;
+#if DEBUG
+            logger.LogInformation("Mapping...");
+#endif
+
+
+            var mapped = data.Select(Map).ToList();
+
+
+#if DEBUG
+            logger.LogInformation("Caching....");
+#endif
+            await cacheService.SetAsync(key, mapped, TimeSpan.FromMinutes(3));
+
+            return mapped;
+
         }
 
         public async Task<IEnumerable<RDTOPCModel>?> GetByFilterAsync(DTOPCFilter filter, CancellationToken cancellationToken)
@@ -237,10 +337,20 @@ namespace ByMyPC.Services.PCService
 #endif
 
 
-            RDTOPCModel? mappedModel = updateModel is not null ? Map(updatedModel!) : null;
+            RDTOPCModel? mappedModel = updatedModel is not null ? Map(updatedModel!) : null;
+            if (mappedModel is null) return null;
+
+            var hubWork = hub.Clients.All.SendAsync("PcUpdated",updateModel.id);
+            var cacheWork = cacheService.IncrementAsync(keyVersion);
 
 #if DEBUG
-            logger.LogInformation("Checl and Mapping end. Result = {@res}", mappedModel);
+            logger.LogInformation("Start Side Services");
+#endif
+
+
+            await Task.WhenAll(hubWork, cacheWork);
+#if DEBUG
+            logger.LogInformation("Check and Mapping end. Result = {@res}", mappedModel);
 #endif
 
             return mappedModel;
@@ -278,6 +388,16 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("Creating end");
 #endif
+            var hubWork = hub.Clients.All.SendAsync("PcCreated", res);
+            var cacheWork = cacheService.IncrementAsync(keyVersion);
+
+
+#if DEBUG
+            logger.LogInformation("Start Side Services");
+#endif
+
+
+            await Task.WhenAll(hubWork, cacheWork);
 
             return res;
         }
@@ -299,7 +419,16 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("End removing, result = {result}", res);
 #endif
+            if (!res) return false;
 
+            var hubWork = hub.Clients.All.SendAsync("PcRemoved", id);
+            var cacheWork = cacheService.IncrementAsync(keyVersion);
+
+#if DEBUG
+            logger.LogInformation("Start Side Services");
+#endif
+
+            await Task.WhenAll(hubWork, cacheWork);
 
             return res;
         }
@@ -337,8 +466,15 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("Attach is end, result = {res}", result);
 #endif
+            var hubWork = hub.Clients.All.SendAsync("PcAttached", idPc);
+            var cacheWork = cacheService.IncrementAsync(keyVersion);
+
+#if DEBUG
+            logger.LogInformation("Start Side Services");
+#endif
 
 
+            await Task.WhenAll(hubWork, cacheWork);
             return result;
         }
         #endregion
@@ -371,6 +507,15 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("Attach is end, result = {res}", result);
 #endif
+            var hubWork = hub.Clients.All.SendAsync("PcDettached", idPc);
+            var cacheWork = cacheService.IncrementAsync(keyVersion);
+
+#if DEBUG
+            logger.LogInformation("Start Side Services");
+#endif
+
+
+            await Task.WhenAll(hubWork, cacheWork);
             return result;
         }
         #endregion

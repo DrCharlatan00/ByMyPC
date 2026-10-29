@@ -6,6 +6,7 @@ using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 
 namespace ByMyPc.Postgresql.Repository
@@ -202,12 +203,33 @@ namespace ByMyPc.Postgresql.Repository
 
             old.Name = model.Name ?? old.Name;
 
+            var payload = new PayloadKafka(
+                 "PCUpdated",
+                 old.ID,
+                 old.Name,
+                 DateTimeOffset.UtcNow
+            ).Convert2Json();
+
+            var outboxMess = new OutboxMessage
+            {
+                EventType = "PCUpdated",
+                Topic = "pc-topic",
+                CreatedAt = DateTime.UtcNow,
+                AggregateId = old.ID.ToString(),
+                Payload = payload,
+                
+            };
+
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.OutboxMessages.AddAsync(outboxMess);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new UpdateOperationException<PcDbModel>("Can't save new Update", ex);
             }
             return old;
@@ -223,13 +245,34 @@ namespace ByMyPc.Postgresql.Repository
                 ID = Guid.NewGuid(),
                 Name = model.Name is null ? "N?A" : model.Name,
             };
+
+            var payload = new PayloadKafka(
+                "PCCreated",
+                newModel.ID,
+                newModel.Name,
+                DateTimeOffset.UtcNow
+                ).Convert2Json();
+
+            var outboxMessage = new OutboxMessage
+            {
+                EventType = "PCCreated",
+                Topic = "pc-topic",
+                AggregateId = newModel.ID.ToString(),
+                Payload = payload,
+                CreatedAt = DateTime.UtcNow
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 await context.PCs.AddAsync(newModel);
+                await context.OutboxMessages.AddAsync(outboxMessage);
+
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new CreateOperationException<PcDbModel>("Creating is fail", ex);
             }
             return newModel.ID;
@@ -241,13 +284,33 @@ namespace ByMyPc.Postgresql.Repository
         {
             var old = await context.PCs.FirstOrDefaultAsync(x => x.ID == id);
             if (old is null) return false;
+
+            var payload = new PayloadKafka(
+                "PCRemoved",
+                id,
+                old.Name,
+                DateTimeOffset.UtcNow
+            ).Convert2Json();
+
+            var outboxMess = new OutboxMessage {
+                EventType = "PCRemoved",
+                Topic = "pc-topic",
+                Payload = payload,
+                CreatedAt = DateTime.UtcNow,
+                AggregateId = id.ToString()
+            };
+
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 context.PCs.Remove(old);
+                await context.OutboxMessages.AddAsync(outboxMess);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new RemoveOperationException<PcDbModel>("Item remove is fail", ex);
             }
             return true;

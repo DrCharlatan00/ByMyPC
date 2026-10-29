@@ -27,13 +27,30 @@ namespace ByMyPc.Postgresql.Repository
                 PcId = PcId,
                 RamId = RamID,
             };
+            var payload = new PayloadKafka("RAMAttached",
+                               componentID: ram.ID,
+                               name: ram.Name,
+                               occurredAt: DateTimeOffset.UtcNow).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "RAMAttached",
+                Topic = "ram-topic",
+                AggregateId = ram.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 await context.PcRams.AddAsync(model);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new OperationsException<PcRamDbModel>("Attach is failed", false, ex);
             }
             return true;
@@ -52,13 +69,31 @@ namespace ByMyPc.Postgresql.Repository
             var isAttached = await context.PcRams.FirstOrDefaultAsync(x => (x.PcId == PcId || x.RamId == RamID));
             if (isAttached is null) throw new OperationsException<RamDbModel>("Ram not Attached", true);
 
+            var payload = new PayloadKafka("RAMDettached",
+                   componentID: ram.ID,
+                   name: ram.Name,
+                   occurredAt: DateTimeOffset.UtcNow).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "RAMDettached",
+                Topic = "ram-topic",
+                AggregateId = ram.ID.ToString(),
+                CreatedAt = DateTime.UtcNow,
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
+
             try
             {
                 context.Remove(isAttached);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new OperationsException<RamDbModel>("Ram not DeAttach", false, ex);
             }
             return true;

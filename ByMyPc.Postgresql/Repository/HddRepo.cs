@@ -119,13 +119,32 @@ namespace ByMyPc.Postgresql.Repository
             old.Name = updateModel.Name ?? old.Name;
             old.connector = updateModel.connector ?? old.connector;
             old.GbSize = updateModel.GbSize ?? old.GbSize;
+
+            var payload = new PayloadKafka(
+                "HDDUpdated",
+                old.ID,
+                old.Name,
+                DateTimeOffset.UtcNow
+                ).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage {
+                EventType = "HDDUpdated",
+                Topic = "hdd-topic",
+                CreatedAt = DateTime.UtcNow,
+                AggregateId = old.ID.ToString(),
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return old;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new UpdateOperationException<HDDDbModel>(ex.Message, ex);
             }
         }
@@ -140,14 +159,34 @@ namespace ByMyPc.Postgresql.Repository
                 Name = createModel.Name,
                 GbSize = createModel.GbSize,
                 connector = createModel.connector
-            }; try
+            };
+            var payload = new PayloadKafka(
+    "HDDCreated",
+    newModel.ID,
+    newModel.Name,
+    DateTimeOffset.UtcNow
+    ).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "HDDCreated",
+                Topic = "hdd-topic",
+                CreatedAt = DateTime.UtcNow,
+                AggregateId = newModel.ID.ToString(),
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
+            try
             {
                 await context.HDDs.AddAsync(newModel);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return newModel.ID;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new CreateOperationException<HDDDbModel>(ex.Message, ex);
             }
         }
@@ -158,14 +197,32 @@ namespace ByMyPc.Postgresql.Repository
         {
             var item = await context.HDDs.FirstOrDefaultAsync(x => x.ID == id);
             if (item is null) return false;
+            var payload = new PayloadKafka(
+"HDDRemoved",
+item.ID,
+item.Name,
+DateTimeOffset.UtcNow
+).Convert2Json();
+
+            var kafkaMessage = new OutboxMessage
+            {
+                EventType = "HDDRemoved",
+                Topic = "hdd-topic",
+                CreatedAt = DateTime.UtcNow,
+                AggregateId = item.ID.ToString(),
+                Payload = payload
+            };
+            await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 context.HDDs.Remove(item);
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return true;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new RemoveOperationException<HDDDbModel>(ex.Message, ex);
             }
         }
@@ -183,9 +240,23 @@ namespace ByMyPc.Postgresql.Repository
                     GbSize = model.GbSize,
                     connector = model.connector
                 };
+                var payload = new PayloadKafka("HDDCreated",
+                                               newModel.ID,
+                                               newModel.Name,
+                                               DateTimeOffset.UtcNow).Convert2Json();
+
+                var kafkaMessage = new OutboxMessage
+                {
+                    EventType = "HDDCreated",
+                    Topic = "hdd-topic",
+                    CreatedAt = DateTime.UtcNow,
+                    AggregateId = newModel.ID.ToString(),
+                    Payload = payload
+                };
                 try
                 {
                     await context.HDDs.AddAsync(newModel);
+                    await context.OutboxMessages.AddAsync(kafkaMessage);
                     await context.SaveChangesAsync();
                 }
                 catch (Exception ex) {
@@ -199,7 +270,22 @@ namespace ByMyPc.Postgresql.Repository
                 }
                 try
                 {
+                    var payloadAttach = new PayloadKafka("HDDAttached",
+                                                         newModel.ID,
+                                                         newModel.Name,
+                                                         DateTimeOffset.UtcNow).Convert2Json();
+
+                    var kafkaMessageAttach = new OutboxMessage
+                    {
+                        EventType = "HDDAttached",
+                        Topic = "hdd-topic",
+                        CreatedAt = DateTime.UtcNow,
+                        AggregateId = newModel.ID.ToString(),
+                        Payload = payload
+                    };
+
                     await context.PcHdds.AddAsync(new PcHddDbModel(PcId, newModel.ID));
+                    await context.OutboxMessages.AddAsync(kafkaMessageAttach);
                     await context.SaveChangesAsync();
                 }
                 catch (Exception ex) {

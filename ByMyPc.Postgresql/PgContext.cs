@@ -1,5 +1,6 @@
 ﻿using ByMyPc.Postgresql.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace ByMyPc.Postgresql
 {
@@ -21,6 +22,9 @@ namespace ByMyPc.Postgresql
 
         public DbSet<PcHddDbModel> PcHdds { get; set; }
         public DbSet<PSUDbModel> Psu { get; set; }
+
+        public DbSet<OutboxMessage> OutboxMessages { get; set; }
+        public DbSet<ProblemDetailModel> Problems { get; set; }
         public PgContext(DbContextOptions<PgContext> options) : base(options)
         {
             
@@ -105,6 +109,54 @@ namespace ByMyPc.Postgresql
                 .WithMany()
                 .HasForeignKey(x => x.PSUId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+
+
+            //kafka
+            modelBuilder.Entity<OutboxMessage>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Topic)
+                .IsRequired();
+
+                entity.Property(x => x.EventType)
+                .IsRequired().HasMaxLength(100);
+
+                entity.Property(x => x.AggregateId)
+                  .IsRequired().HasMaxLength(100);
+
+                entity.Property(x => x.Payload)
+                .IsRequired()
+                .HasColumnType("json");
+                ;
+
+                entity.Property(x => x.CreatedAt)
+                .IsRequired();
+
+                entity.Property(x => x.ProcessedAt)
+                .IsRequired(false);
+
+                entity.Property(x => x.RetryCount)
+                .IsRequired().HasDefaultValue(0);
+
+
+                entity.HasIndex(x => x.CreatedAt);
+
+
+            });
+            modelBuilder.Entity<ProblemDetailModel>(x => {
+                x.HasKey(x => x.ID);
+
+                x.Property(x => x.Details).IsRequired();
+
+                x.Property(x => x.NameException).IsRequired().HasMaxLength(100);
+
+                x.Property(x => x.NameAPIOrServer).IsRequired().HasMaxLength(100);
+
+                x.HasIndex(x => x.TimeProblemCreated);
+
+            });
 
             base.OnModelCreating(modelBuilder);
         }

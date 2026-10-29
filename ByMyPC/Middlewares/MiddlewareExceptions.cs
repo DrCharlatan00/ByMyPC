@@ -1,14 +1,17 @@
-﻿using ByMyPc.Postgresql.Exceptions;
+﻿using ByMyPc.Postgresql;
+using ByMyPc.Postgresql.Exceptions;
+using ByMyPc.Postgresql.Models;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.Connections;
 using System.Security.Cryptography;
 
 namespace ByMyPC.Middlewares
 {
-    public class MiddlewareExceptions(RequestDelegate requestDelegate, ILogger<MiddlewareExceptions> logger)
+    public class MiddlewareExceptions(RequestDelegate requestDelegate, ILogger<MiddlewareExceptions> logger, PgContext context)
     {
         private readonly RequestDelegate requestDelegate = requestDelegate;
         private readonly ILogger<MiddlewareExceptions> logger = logger;
+        private readonly PgContext context = context;
 
         public async Task InvokeAsync(HttpContext httpContext) {
             string messageUser = string.Empty;
@@ -18,6 +21,24 @@ namespace ByMyPC.Middlewares
                 await requestDelegate(httpContext);
             }
             catch (Exception ex) when (ex is OperationsException<object> ecx) {
+                try
+                {
+                    var problemDetail = new ProblemDetailModel
+                    {
+                        ID = Guid.NewGuid(),
+                        NameException = ex.GetType().FullName ?? "Unknown",
+                        NameAPIOrServer = "API ByMyPc 4",
+                        TimeProblemCreated = DateTimeOffset.UtcNow,
+                        Details = ex.Message + "\n" + $"Problem created with collection {ecx.NameCollection}, API Set bad request ? = {ecx.BadRq}"
+                    };
+                    await context.Problems.AddAsync(problemDetail);
+                }
+                catch (Exception exProb)
+                {
+                    logger.LogError(exProb, "Can't create to db message");
+                }
+
+
                 logger.LogError(ex,"Operations aborted {exmess}\n SystemFall?:{bq}", ex.Message,ecx.BadRq);
                 messageUser = ecx.BadRq ? "Operation cancelled. The database rejected your data. " : "Server unexpect abord operation, Please contact to Administrator";
                 StatusCode = ecx.BadRq ? StatusCodes.Status400BadRequest : StatusCodes.Status500InternalServerError;
@@ -41,6 +62,24 @@ namespace ByMyPC.Middlewares
                     UpdateOperationException<object> => StatusCodes.Status409Conflict,
                     _ => StatusCodes.Status500InternalServerError
                 };
+                try
+                {
+                    var problemDetail = new ProblemDetailModel
+                    {
+                        ID = Guid.NewGuid(),
+                        NameException = ex.GetType().FullName ?? "Unknown",
+                        NameAPIOrServer = "API ByMyPc 4",
+                        TimeProblemCreated = DateTimeOffset.UtcNow,
+                        Details = ex.Message + "\n" + $"Problem created with collection {exs.NameCollection}, API Set Code = {StatusCode}"
+                    };
+                    await context.Problems.AddAsync(problemDetail);
+                }
+                catch (Exception exProb)
+                {
+                    logger.LogError(exProb, "Can't create to db message");
+                }
+
+
                 httpContext.Response.StatusCode = StatusCode;
                 await httpContext.Response.WriteAsJsonAsync(new
                 {
@@ -76,6 +115,23 @@ namespace ByMyPC.Middlewares
                     IOperationException => StatusCodes.Status503ServiceUnavailable,
                     _ => StatusCodes.Status500InternalServerError
                 };
+                try
+                {
+                    var problemDetail = new ProblemDetailModel
+                    {
+                        ID = Guid.NewGuid(),
+                        NameException = ex.GetType().FullName ?? "Unknown",
+                        NameAPIOrServer = "API ByMyPc 4",
+                        TimeProblemCreated = DateTimeOffset.UtcNow,
+                        Details = $"Middleware catch exception, name = {ex.GetType().FullName ?? "unknown"} ex message = {ex.Message}"
+                    };
+                    await context.Problems.AddAsync(problemDetail);
+                }
+                catch (Exception exProb)
+                {
+                    logger.LogError(exProb, "Can't create to db message");
+                }
+
                 httpContext.Response.StatusCode = StatusCode;
                 await httpContext.Response.WriteAsJsonAsync(new
                 {

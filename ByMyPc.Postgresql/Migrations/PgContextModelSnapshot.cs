@@ -290,6 +290,36 @@ namespace ByMyPc.Postgresql.Migrations
                     b.ToTable("PcRams");
                 });
 
+            modelBuilder.Entity("ByMyPc.Postgresql.Models.ProblemDetailModel", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NameAPIOrServer")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NameException")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("TimeProblemCreated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("TimeProblemCreated");
+
+                    b.ToTable("Problems");
+                });
+
             modelBuilder.Entity("ByMyPc.Postgresql.Models.RamDbModel", b =>
                 {
                     b.Property<Guid>("ID")

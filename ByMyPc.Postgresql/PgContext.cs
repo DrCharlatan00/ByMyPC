@@ -1,5 +1,6 @@
 ﻿using ByMyPc.Postgresql.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace ByMyPc.Postgresql
 {
@@ -23,6 +24,7 @@ namespace ByMyPc.Postgresql
         public DbSet<PSUDbModel> Psu { get; set; }
 
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
+        public DbSet<ProblemDetailModel> Problems { get; set; }
         public PgContext(DbContextOptions<PgContext> options) : base(options)
         {
             
@@ -143,6 +145,19 @@ namespace ByMyPc.Postgresql
 
 
             });
+            modelBuilder.Entity<ProblemDetailModel>(x => {
+                x.HasKey(x => x.ID);
+
+                x.Property(x => x.Details).IsRequired();
+
+                x.Property(x => x.NameException).IsRequired().HasMaxLength(100);
+
+                x.Property(x => x.NameAPIOrServer).IsRequired().HasMaxLength(100);
+
+                x.HasIndex(x => x.TimeProblemCreated);
+
+            });
+
             base.OnModelCreating(modelBuilder);
         }
     }

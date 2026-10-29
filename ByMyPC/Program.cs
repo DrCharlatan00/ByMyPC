@@ -28,6 +28,7 @@ using ByMyPC.Services.MotherboardService;
 using ByMyPC.Services.PCService;
 using ByMyPC.Services.PSUService;
 using ByMyPC.Services.RamService;
+using Confluent.Kafka;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Metrics;
@@ -84,6 +85,15 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
         ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisMain")!)
     );
 
+
+#region Health
+
+var kafkaProducerConf = new ProducerConfig
+{
+    BootstrapServers = builder.Configuration["Kafka:BootsrapServers"] ?? throw new ArgumentNullException("kafka string connection null"),
+    MessageTimeoutMs = 3000
+};
+
 builder.Services.AddHealthChecks().AddNpgSql(
         builder.Configuration.GetConnectionString("postgresMainDb")!,
         healthQuery: "SELECT 1;",
@@ -93,8 +103,15 @@ builder.Services.AddHealthChecks().AddNpgSql(
     ).AddRedis(
         builder.Configuration.GetConnectionString("RedisMain")!,
         name: "Redis",
-        tags: ["cache","ready"]
+        tags: ["cache", "ready"]
+    ).AddKafka(
+        config: kafkaProducerConf,
+        name: "Kafka",
+        tags: ["kafka","ready"]
     );
+    
+#endregion
+
 
 
 builder.Services.AddScoped<ICacheService, RedisCacheService>();

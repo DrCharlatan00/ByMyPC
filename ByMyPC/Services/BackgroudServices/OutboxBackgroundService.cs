@@ -34,7 +34,15 @@ namespace ByMyPC.Services.BackgroudServices
                 catch (Exception ex) {
                     logger.LogError(ex, "Outbox send message if failed");
                 }
-                await Task.Delay(PollingInterval, stoppingToken);
+                try
+                {
+                    await Task.Delay(PollingInterval, stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                   
+                }
+
             }
 
         }

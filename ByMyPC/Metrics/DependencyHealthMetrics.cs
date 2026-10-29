@@ -13,7 +13,8 @@ namespace ByMyPC.Metrics
         private readonly ConcurrentDictionary<string, int> _health = new()
         {
             ["ByMyPC"] = -1,
-            ["Redis"] = -1
+            ["Redis"] = -1,
+            ["Kafka"] = -1,
         };
 
         public DependencyHealthMetrics(HealthCheckService healthCheckService)
@@ -61,9 +62,16 @@ namespace ByMyPC.Metrics
                 {
                     
                 }
-
-                await Task.Delay(
-                    TimeSpan.FromSeconds(10), stoppingToken);
+                try
+                {
+                    await Task.Delay(
+                   TimeSpan.FromSeconds(10), stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    
+                }
+               
             }
         }
         public override void Dispose()

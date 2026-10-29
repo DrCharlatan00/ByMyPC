@@ -1,0 +1,69 @@
+services: 
+  bymypc-api:
+    build:
+      context: .
+      dockerfile: ByMyPC/Dockerfile
+    container_name: bymypc-api
+    ports:
+      - "1303:1303"
+    environment:
+      ASPNETCORE_URLS: "http://+:1303"
+      ConnectionStrings__postgresMainDb: "Host=postgres;Port=5432;Database=bymypcdb;Username=drcharlatan;Password=ByMyPcPGPass"
+      ConnectionStrings__RedisMain: "redis:6379,password=ByMyPcRD"
+      Kafka__BootsrapServers: "kafka:9092"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    restart: unless-stopped
+    
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: drcharlatan
+      POSTGRES_PASSWORD: ByMyPcPGPass
+      POSTGRES_DB: bymypcdb
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    restart: unless-stopped
+    
+  redis:
+    image: redis:latest
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --requirepass ByMyPcRD
+    restart: unless-stopped
+    
+  kafka:
+    image: apache/kafka:latest
+    ports:
+      - "9095:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    restart: unless-stopped
+    
+volumes:
+  redis_data:
+  postgres_data:
+  kafka_data:

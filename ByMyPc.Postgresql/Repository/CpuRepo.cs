@@ -114,7 +114,7 @@ namespace ByMyPc.Postgresql.Repository
         public async IAsyncEnumerable<CpuSmallModel> SearchCpuSmallByNameWithPaginationAsyncEnumerable(string name, int page, int pageSize, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var model in context.CPUs.AsNoTracking()
-                                                    .Where(x => x.Name == name)
+                                                    .Where(x => x.Name.Contains(name))
                                                     .Select(x => new CpuSmallModel(x.ID, x.Name, x.Socket))
                                                     .Skip((page - 1) * pageSize)
                                                     .Take(pageSize)
@@ -136,8 +136,8 @@ namespace ByMyPc.Postgresql.Repository
                 old.Frequency = model.Frequency == 0 ? old.Frequency : model.Frequency;
                 old.IsLive = model.IsLive;
                 old.Count_Cores = model.Count_Cores != 0 ? model.Count_Cores : old.Count_Cores;
-                old.Socket = (model.Socket is not null || model.Socket == "skip") ? model.Socket : old.Socket;
-                old.Name = (model.Name is not null || model.Name == "skip") ? model.Name : old.Name;
+                old.Socket = (model.Socket is not null && model?.Socket != "skip") ? model.Socket : old.Socket;
+                old.Name = (model.Name is not null && model?.Name != "skip") ? model.Name : old.Name;
 
                 var payload = new PayloadKafka(
                         "CPUUpdated",
@@ -179,14 +179,14 @@ namespace ByMyPc.Postgresql.Repository
                 cpuDb.ID = Guid.NewGuid();
 
                 var payload = new PayloadKafka(
-                        "PCCreated",
+                        "CPUCreated",
                         cpuDb.ID,
                         cpuDb.Name,
                         DateTimeOffset.UtcNow
                     ).Convert2Json();
 
                 var kafkaMess = new OutboxMessage {
-                    EventType = "PCCreated",
+                    EventType = "CPUCreated",
                     Topic = "cpu-topic",
                     Payload = payload,
                     CreatedAt = DateTime.UtcNow,
@@ -220,7 +220,7 @@ namespace ByMyPc.Postgresql.Repository
                 ).Convert2Json();
 
             var kafkaMessage = new OutboxMessage {
-                EventType = "PCCreated",
+                EventType = "CPURemoved",
                 Topic = "cpu-topic",
                 Payload = payload,
                 CreatedAt = DateTime.UtcNow,

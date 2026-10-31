@@ -21,7 +21,7 @@ namespace ByMyPc.Postgresql
             catch (Exception)
             {
             }
-            optionsBuilder.UseNpgsql("Password=ByMyPcPGPass;Persist Security Info=True;Username=drcharlatan;Database=bymypcdb;Host=localhost:5432");
+            optionsBuilder.UseNpgsql("Password=ByMyPcPGPass;Persist Security Info=True;Username=drcharlatan;Database=bymypcdb;Host=localhost:5455");
             return new PgContext(optionsBuilder.Options);
         }
     }

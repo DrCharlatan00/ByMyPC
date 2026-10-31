@@ -12,6 +12,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore.Metadata;
 using System.Xml.Linq;
 
 namespace ByMyPC.Services.CpuService
@@ -22,7 +23,8 @@ namespace ByMyPC.Services.CpuService
         IMapper mapper,
         ILogger<CpuService> logger,
         IHubContext<CpuHub> hub,
-        ICacheService cacheService
+        ICacheService cacheService,
+        RedisCacheDataWork redisData
         ) : ICpuService
     {
         private readonly ICpuRepo repo = repo;
@@ -32,6 +34,7 @@ namespace ByMyPC.Services.CpuService
         private readonly ILogger<CpuService> logger = logger;
         private readonly IHubContext<CpuHub> hub = hub;
         private readonly ICacheService cacheService = cacheService;
+        private readonly RedisCacheDataWork redisData = redisData;
 
         public async Task<IEnumerable<RDTOCpuModel>?> GetFullCpuAsync(CancellationToken cancellationToken)
         {
@@ -87,35 +90,16 @@ namespace ByMyPC.Services.CpuService
 #endif
 
 
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOCpuModel>>(key);
-
-            if (cache is not null) return cache;
-
-#if DEBUG
-            logger.LogInformation("Cache missing, continue db proccess.........");
-#endif
-
-
-            var data = await repo.GetAsyncPagination(page, pageSize, cancellationToken);
-
-#if DEBUG
-            logger.LogInformation("End db Get procces, Mapping....");
-#endif
-
-
-            var rdto = data.Select(Map).ToList();
-
-
-#if DEBUG
-            logger.LogInformation("Map end, Set Cache.........");
-#endif
-
-
-            await cacheService.SetAsync(key,rdto,TimeSpan.FromMinutes(2));
-#if DEBUG
-            logger.LogInformation("---------------------End Work Service--------------------");
-#endif
-            return rdto;
+            var dataCacheWorker = await redisData.GetOrSetCacheAsync(
+                    key,
+                    async () => {
+                        var dbData = await repo.GetAsyncPagination(page, pageSize, cancellationToken);
+                        var mappedData = dbData.Select(Map).ToList();
+                        return mappedData;
+                    },
+                    TimeSpan.FromMinutes(4)
+                );
+            return dataCacheWorker ?? Enumerable.Empty<RDTOCpuModel>();
         }
 
         public async Task<RDTOCpuModel?> GetById(Guid Id)
@@ -194,48 +178,19 @@ namespace ByMyPC.Services.CpuService
 
             string key = $"cpu:v{vers}:page={page}:page_size={pageSize}";
 
-#if DEBUG
-            logger.LogInformation("Try Get in Cache..........");
-#endif
+
+            var dataCacheWorker = await redisData.GetOrSetCacheAsync(
+                    key,
+                    async () => {
+                        var data = await repo.GetCpuSmallModelsPagination(page, pageSize, cancellationToken);
+                        var mappedData = data.Select(Map).ToList();
+                        return mappedData;
+                    },
+                    TimeSpan.FromMinutes(3)
+                );
+            return dataCacheWorker ?? Enumerable.Empty<RDTOCpuSmallModel>();
 
 
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOCpuSmallModel>>(key);
-
-            if (cache is not null) return cache;
-
-
-
-#if DEBUG
-            logger.LogInformation("Cache is miss, get in db..............");
-#endif
-
-
-            var data = await repo.GetCpuSmallModelsPagination(page, pageSize, cancellationToken);
-
-
-#if DEBUG
-            logger.LogInformation("Db return result, Mapping...........");
-#endif
-
-
-            var rdto = data.Select(Map).ToList();
-
-#if DEBUG
-            logger.LogInformation("Map end, Caching.............");
-#endif
-
-
-            await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
-
-#if DEBUG
-            logger.LogInformation("Caching end, return data ");
-#endif
-
-
-#if DEBUG
-            logger.LogInformation("---------------------End Work Service--------------------");
-#endif
-            return rdto;
         }
 
         public async Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameAsync(string name, CancellationToken cancellationToken)
@@ -350,35 +305,22 @@ namespace ByMyPC.Services.CpuService
             logger.LogInformation("Try get data in Cache..........");
 #endif
 
-
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOCpuSmallModel>>(key);
-
-            if (cache is not null) return cache;
-
-
-#if DEBUG
-            logger.LogInformation("Cache is miss, get in db Async Enumerable........");
-#endif
-
-
-            List<RDTOCpuSmallModel> RDTO = new();
-            await foreach (var data in repo.SearchCpuSmallByNameWithPaginationAsyncEnumerable(name, page, pageSize, cancellationToken))
-            {
-                RDTO.Add(Map(data));
-            }
+            var dataCacheWorker = await redisData.GetOrSetCacheAsync(
+                    key,
+                    async () => {
+                        List<RDTOCpuSmallModel> RDTO = new();
+                        await foreach (var data in repo.SearchCpuSmallByNameWithPaginationAsyncEnumerable(name, page, pageSize, cancellationToken))
+                        {
+                            RDTO.Add(Map(data));
+                        }
+                        return RDTO;
+                    },
+                    TimeSpan.FromMinutes(3)
+                    
+                );
+            return dataCacheWorker ?? Enumerable.Empty<RDTOCpuSmallModel>();
 
 
-#if DEBUG
-            logger.LogInformation("End db procces, Caching data.........");
-#endif
-
-
-
-            await cacheService.SetAsync(key, RDTO, TimeSpan.FromMinutes(2));
-#if DEBUG
-            logger.LogInformation("---------------------End Work Service--------------------");
-#endif
-            return RDTO;
         }
 
         public async Task<RDTOCpuModel?> UpdateAsync(DTOCpuUpdateModel model)

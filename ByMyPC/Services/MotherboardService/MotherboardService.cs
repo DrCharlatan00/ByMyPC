@@ -23,7 +23,8 @@ namespace ByMyPC.Services.MotherboardService
         IMapper mapper,
         ILogger<MotherboardService> logger,
         IHubContext<MotherboardHub> hub,
-        ICacheService cacheService
+        ICacheService cacheService,
+        RedisCacheDataWork redisDataWork
         ) : IMotherboardService
     {
         private readonly IMotherboardRepo repo = repo;
@@ -33,6 +34,7 @@ namespace ByMyPC.Services.MotherboardService
         private readonly ILogger<MotherboardService> logger = logger;
         private readonly IHubContext<MotherboardHub> hub = hub;
         private readonly ICacheService cacheService = cacheService;
+        private readonly RedisCacheDataWork redisDataWork = redisDataWork;
 
         #region Get
         public async Task<IEnumerable<RDTOModelMotherboardCard>> GetCardMotherboardAsync(CancellationToken cancellationToken)
@@ -91,72 +93,15 @@ namespace ByMyPC.Services.MotherboardService
 
             string key = $"motherboard:v{version}:page={page}:page_size={pageSize}";
 
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOModelMotherboardCard>>(key);
-
-
-            if (cache is not null)
-                return cache;
-
-
-#if DEBUG
-            logger.LogInformation("Data in cache is null, continue get in db");
-#endif
-
-
-
-#if DEBUG
-            logger.LogInformation("Get data in db....");
-#endif
-
-
-            IEnumerable<MotherboardSmallDbModel>? data = await repo.GetCardWithPaginationAsync(page, pageSize, cancellationToken);
-
-
-#if DEBUG
-            logger.LogInformation("Data get in db ");
-#endif
-
-
-
-            if (data is null) return null;
-
-
-#if DEBUG
-            logger.LogInformation("data is not null, continue");
-#endif
-
-
-#if DEBUG
-            logger.LogInformation("Mapping data... ");
-#endif
-
-
-            var rdto = data.Select(Map).ToList();
-
-
-#if DEBUG
-            logger.LogInformation("mapping data is OK IEnumerable<MotherboardSmallDbModel>? => IEnumerable<RDTOModelMotherboardCard>?");
-#endif
-
-
-#if DEBUG
-            logger.LogInformation("Caching data...");
-#endif
-
-
-            await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
-
-#if DEBUG
-            logger.LogInformation("Set cache is ok ");
-#endif
-
-
-#if DEBUG
-            logger.LogInformation("Retrieveing data");
-#endif
-
-
-            return rdto;
+            var cacheData = await redisDataWork.GetOrSetCacheAsync(
+                    key,
+                    async () => {
+                        IEnumerable<MotherboardSmallDbModel>? data = await repo.GetCardWithPaginationAsync(page, pageSize, cancellationToken);
+                        return data.Select(Map).ToList();
+                    },
+                    TimeSpan.FromMinutes(3)
+                );
+            return cacheData ?? Enumerable.Empty<RDTOModelMotherboardCard>();
 
         }
 
@@ -203,65 +148,15 @@ namespace ByMyPC.Services.MotherboardService
 
             string key = $"motherboard:v{version}:name={name}:page={page}:page_size={pageSize}";
 
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOModelMotherboardCard>>(key);
-
-            if (cache is not null) 
-                return cache;
-
-
-#if DEBUG
-            logger.LogInformation("Cache data is miss, continue");
-#endif
-
-
-#if DEBUG
-            logger.LogInformation("Getting data in db....");
-#endif
-
-
-            IEnumerable<MotherboardSmallDbModel>? data = await repo.SearchByNameMotherboardSmallWithPaginationAsync(name, page, pageSize, cancellationToken);
-
-
-#if DEBUG
-            logger.LogInformation("Data get in db func {func}, next check in null", "SearchByNameMotherboardSmallWithPaginationAsync");
-#endif
-
-
-            if (data is null) return null;
-
-#if DEBUG
-            logger.LogInformation("Data not null");
-#endif
-
-
-#if DEBUG
-            logger.LogInformation("Mapping data....");
-#endif
-
-
-            List<RDTOModelMotherboardCard> rdto = data.Select(Map).ToList();
-
-#if DEBUG
-            logger.LogInformation("Data mapped, IEnumerable<MotherboardSmallDbModel>? => IEnumerable<RDTOModelMotherboardCard>");
-#endif
-
-#if DEBUG
-            logger.LogInformation("Caching data....");
-#endif
-
-            await cacheService.SetAsync(key, rdto, TimeSpan.FromMinutes(2));
-
-#if DEBUG
-            logger.LogInformation("data is cached");
-#endif
-
-
-#if DEBUG
-            logger.LogInformation("Retrieveing data");
-#endif
-
-
-            return rdto;
+            var cacheData = await redisDataWork.GetOrSetCacheAsync(
+                    key,
+                    async () => {
+                        var data = await repo.SearchByNameMotherboardSmallWithPaginationAsync(name, page, pageSize, cancellationToken);
+                        return data.Select(Map).ToList();
+                    },
+                    TimeSpan.FromMinutes(3)
+                );
+            return cacheData ?? Enumerable.Empty<RDTOModelMotherboardCard>();
         }
 
         public async Task<IEnumerable<RDTOModelMotherboard>?> GetByFilterAsync(DTOMotherboardFilter filter, CancellationToken cancellationToken) {

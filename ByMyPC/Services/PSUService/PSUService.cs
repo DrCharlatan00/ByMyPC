@@ -22,7 +22,8 @@ namespace ByMyPC.Services.PSUService
             IValidator<DTOPSUModelCreate> validator,
             IMapper mapper,
             ICacheService cacheService,
-            IHubContext<PSUHub> hub
+            IHubContext<PSUHub> hub,
+            RedisCacheDataWork redisDataWork
         ) : IPSUService
     {
 
@@ -32,6 +33,7 @@ namespace ByMyPC.Services.PSUService
         private readonly IMapper mapper = mapper;
         private readonly ICacheService cacheService = cacheService;
         private readonly IHubContext<PSUHub> hub = hub;
+        private readonly RedisCacheDataWork redisDataWork = redisDataWork;
         const string keyCache = "psu:version";
 
 
@@ -123,36 +125,28 @@ namespace ByMyPC.Services.PSUService
 #endif
             long versionCache = await cacheService.GetVersionAsync(keyCache);
 
-            IEnumerable<RDTOPSUSmallModel>? dataCache = await cacheService.GetAsync<IEnumerable<RDTOPSUSmallModel>>($"psu:v{versionCache}:name={name}");
 
-            if (dataCache is not null) return dataCache;
+            string key = $"psu:v{versionCache}:name={name}";
 
-#if DEBUG
-            logger.LogInformation("Cache is empty for PSU SearchByName");
-#endif
-            IList<RDTOPSUSmallModel> rdto = new List<RDTOPSUSmallModel>();
-            await foreach (PSUSmallModel item in repo.SearchByNameSmallAsyncEnumerable(name, cancellation))
-            {
-                rdto.Add(Map(item));
-            }
-#if DEBUG
-            logger.LogInformation("Data mapping is OK PSUSmallModel => RDTOPSUSmallModel");
-#endif
-            try
-            {
-                await cacheService.SetAsync($"psu:v{versionCache}:name={name}", rdto, TimeSpan.FromMinutes(3));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Redis not set data,First object Data {@data}", rdto.First());
-            }
-#if DEBUG
-            logger.LogInformation("retrieved data..");
-#endif
-#if DEBUG
-            logger.LogInformation("-----------------------Service end work------------------------");
-#endif
-            return rdto;
+            var cache = await redisDataWork.GetOrSetCacheAsync(
+                key,
+                async () =>
+                {
+                    IList<RDTOPSUSmallModel> rdto = new List<RDTOPSUSmallModel>();
+                    await foreach (PSUSmallModel item in repo.SearchByNameSmallAsyncEnumerable(name, cancellation))
+                    {
+                        rdto.Add(Map(item));
+                    }
+                    return rdto;
+
+                },
+                TimeSpan.FromMinutes(3)
+            );
+
+            return cache ?? Enumerable.Empty<RDTOPSUSmallModel>();
+
+
+
         }
 
         public async Task<IEnumerable<RDTOPSUSmallModel>?> GetSmallWithPag(int page, int pageSize, CancellationToken cancellation)
@@ -166,42 +160,23 @@ namespace ByMyPC.Services.PSUService
 #endif
             long versionCache = await cacheService.GetVersionAsync(keyCache);
 
-            IEnumerable<RDTOPSUSmallModel>? dataCache = await cacheService.GetAsync<IEnumerable<RDTOPSUSmallModel>>($"psu:v{versionCache}:page={page}:page-size:{pageSize}");
+            string key = $"psu:v{versionCache}:page={page}:page-size:{pageSize}";
 
-            if (dataCache is not null) return dataCache;
 
-#if DEBUG
-            logger.LogInformation("Cache is empty for PSU Small Pag");
-#endif
+            var cache = await redisDataWork.GetOrSetCacheAsync(
+                key,
+                async () =>
+                {
+                    var data = await repo.GetSmallModelsAsyncWithPag(page, pageSize, cancellation);
+                    if (data is null) return null;
+                    return data.Select(Map).ToList();
 
-            IEnumerable<PSUSmallModel>? data = await repo.GetSmallModelsAsyncWithPag(page, pageSize, cancellation);
-            if (data is null)
-                logger.LogWarning("Func {func} Return null value\nparam Page: {page}; pageSize: {pagesize}", nameof(GetSmallWithPag), page, pageSize);
+                },
+                TimeSpan.FromMinutes(3)
+            );
 
-#if DEBUG
-            logger.LogInformation("Mapping data Small IEnumerable<PSUSmallModel>? => IEnumerable<RDTOPSUSmallModel>");
-#endif
-            List<RDTOPSUSmallModel>? rdto = data?.Select(Map).ToList();
+            return cache ?? Enumerable.Empty<RDTOPSUSmallModel>();
 
-#if DEBUG
-            logger.LogInformation("Mapping data OK IEnumerable<PSUSmallModel>? => IEnumerable<RDTOPSUSmallModel> OK");
-#endif
-            try
-            {
-                await cacheService.SetAsync($"psu:v{versionCache}:page={page}:page-size:{pageSize}", rdto, TimeSpan.FromMinutes(3));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Redis not set data,First object Data {@data}", rdto.First());
-            }
-
-#if DEBUG
-            logger.LogInformation("Data retrieved for PSU Small Pag OK");
-#endif
-#if DEBUG
-            logger.LogInformation("-----------------------Service end work------------------------");
-#endif
-            return rdto;
 
 
         }

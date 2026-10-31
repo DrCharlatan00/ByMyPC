@@ -21,7 +21,9 @@ namespace ByMyPC.Services.HDDService
                              IValidator<DTOHDDCreateModel> validator,
                              ILogger<HDDService> logger,
                              IHubContext<HDDHub> hub, 
-                             ICacheService cacheService) : IHDDService
+                             ICacheService cacheService,
+                             RedisCacheDataWork redisDataWork
+                             ) : IHDDService
     {
         private readonly IHddRepo repo = repo;
         private readonly IPcHddRepo pcHddRepo = pcHddRepo;
@@ -30,6 +32,7 @@ namespace ByMyPC.Services.HDDService
         private readonly ILogger<HDDService> logger = logger;
         private readonly IHubContext<HDDHub> hub = hub;
         private readonly ICacheService cacheService = cacheService;
+        private readonly RedisCacheDataWork redisDataWork = redisDataWork;
 
         #region Get
         public async Task<IEnumerable<RDTOHDDCardModel>> GetCardModelsAsync(CancellationToken cancellationToken)
@@ -145,65 +148,16 @@ namespace ByMyPC.Services.HDDService
 
             string cacheKey = $"hdd:v{versionCacheKey}:page={page}:page-size={pageSize}";
 
+            var cacheData = await redisDataWork.GetOrSetCacheAsync(
+                    cacheKey,
+                    async () => {
+                        var data = await repo.GetSmallModelWithPagination(page,pageSize,cancellationToken);
+                        return data.Select(Map).ToList();
+                    },
+                    TimeSpan.FromMinutes(3)
+                );
 
-#if DEBUG
-            logger.LogInformation("try get data in cache....");
-#endif
-
-
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOHDDCardModel>>(cacheKey);
-
-            if (cache is not null) return cache;
-
-
-#if DEBUG
-            logger.LogInformation("Cache is miss, continue");
-#endif
-
-
-#if DEBUG
-            logger.LogInformation("Start db proccess....");
-#endif
-
-
-            var data = await repo.GetSmallModelWithPagination(page, pageSize, cancellationToken);
-
-#if DEBUG
-            logger.LogInformation("db return data : result = {@data}", data);
-#endif
-
-            if (data is null)
-            {
-                logger.LogError("In func {func} get data is null with param page: {page} pageSize: {pagesize}", nameof(GetCardWithPagination), page, pageSize);
-                throw new NullReferenceException("In pag method get null");
-            }
-
-#if DEBUG
-            logger.LogInformation("data is mapping...");
-#endif
-
-            var RDTOData = data.Select(Map).ToList();
-
-#if DEBUG
-            logger.LogInformation("Data is mapped");
-#endif
-
-#if DEBUG
-            logger.LogInformation("Start caching...");
-#endif
-
-
-
-            await cacheService.SetAsync(cacheKey, RDTOData, TimeSpan.FromMinutes(2));
-
-#if DEBUG
-            logger.LogInformation("Data is caching");
-#endif
-
-#if DEBUG
-            logger.LogInformation("Retrieving data");
-#endif
-            return RDTOData;
+            return cacheData ?? Enumerable.Empty<RDTOHDDCardModel>();
         }
 
 
@@ -245,62 +199,15 @@ namespace ByMyPC.Services.HDDService
             long version = await cacheService.GetVersionAsync(versionCacheKey);
 
             string cacheKey = $"hdd:v{versionCacheKey}:name={name}:page={page}:page-size={pageSize}";
-
-#if DEBUG
-            logger.LogInformation("try get data in cache....");
-#endif
-
-
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOHDDCardModel>>(cacheKey);
-            
-            if (cache is not null) return cache;
-
-#if DEBUG
-            logger.LogInformation("cache is miss, continue");
-#endif
-
-#if DEBUG
-            logger.LogInformation("Start db procces...");
-#endif
-
-
-
-            var data = await repo.SearchByNameWithPag(name, page, pageSize, cancellationToken);
-
-
-#if DEBUG
-            logger.LogInformation("end db work, res = {res}", data is not null ? true : false);
-#endif
-
-
-            if (data is not null) {
-
-#if DEBUG
-                logger.LogInformation("Caching data....");
-#endif
-
-
-                await cacheService.SetAsync(cacheKey, data, TimeSpan.FromMinutes(2));
-
-#if DEBUG
-                logger.LogInformation("Data is cached");
-#endif
-
-
-#if DEBUG
-                logger.LogInformation("Mapping and return data");
-#endif
-
-
-                return data.Select(Map).ToList();
-            }
-
-#if DEBUG
-            logger.LogInformation("data is null, possible not exist with this param");
-#endif
-
-
-            return null;
+            var cacheData = await redisDataWork.GetOrSetCacheAsync(
+                    cacheKey,
+                    async () => {
+                        var data = await repo.SearchByNameWithPag(name, page, pageSize, cancellationToken);
+                        return data?.Select(Map).ToList();
+                    },
+                    TimeSpan.FromMinutes(3)
+                );
+            return cacheData ?? Enumerable.Empty<RDTOHDDCardModel>();
         }
 
         public async Task<IEnumerable<RDTOHDDCardModel>?> GetCardByFilterWithPag(DTOHDDFilter filter, int page, int pageSize,CancellationToken cancellationToken)

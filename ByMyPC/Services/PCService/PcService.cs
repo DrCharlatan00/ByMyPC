@@ -32,7 +32,8 @@ namespace ByMyPC.Services.PCService
         ILogger<PcService> logger,
         IHubContext<PcHub> hub,
         ICacheService cacheService,
-        IKafkaProducerService kafkaProducerService
+        IKafkaProducerService kafkaProducerService,
+        RedisCacheDataWork redisDataWork
         ) : IPcService
     {
         const string keyVersion = "pc:version";
@@ -44,6 +45,7 @@ namespace ByMyPC.Services.PCService
         private readonly IHubContext<PcHub> hub = hub;
         private readonly ICacheService cacheService = cacheService;
         private readonly IKafkaProducerService kafkaProducerService = kafkaProducerService;
+        private readonly RedisCacheDataWork redisDataWork = redisDataWork;
 
         #region Get Methods
         public async Task<IEnumerable<RDTOPCModel>> GetFullAsync(CancellationToken cancellationToken)
@@ -114,29 +116,17 @@ namespace ByMyPC.Services.PCService
             long version = await cacheService.GetVersionAsync(keyVersion);
 
             string key = $"pc:v{version}:page={page}:pageSize={pageSize}";
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOPCModel>>(key);
-            if (cache is not null) return cache;
-
-
-#if DEBUG
-            logger.LogInformation("cache miss");
-#endif
-
-
-#if DEBUG
-            logger.LogInformation("Start get Full Paginated in db................");
-#endif
-
-
-            var data = await repo.GetPcFullWithPagination(page, pageSize, cancellationToken);
-
-#if DEBUG
-            logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
-#endif
-            if (data is null) return Enumerable.Empty<RDTOPCModel>() ;
-            List<RDTOPCModel> mappedData = data.Select(Map).ToList();
-            await cacheService.SetAsync(key, mappedData, TimeSpan.FromMinutes(3));
-            return mappedData;
+            var cache = await redisDataWork.GetOrSetCacheAsync(
+                    key,
+                    async () => {
+                        var data = await repo.GetPcFullWithPagination(page, pageSize, cancellationToken);
+                        if (data is null) return null;
+                        return data.Select(Map).ToList();
+                    },
+                    TimeSpan.FromMinutes(3)
+                );
+            return cache ?? Enumerable.Empty<RDTOPCModel>();
+ 
         }
 
         public async Task<IEnumerable<RDTOPCSmallModel>?> GetSmallPaginatedAsync(int page, int pageSize, CancellationToken cancellationToken)
@@ -148,20 +138,17 @@ namespace ByMyPC.Services.PCService
             long version = await cacheService.GetVersionAsync(keyVersion);
 
             string key = $"pc:v{version}:page={page}:pageSize={pageSize}:small";
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOPCSmallModel>>(key);
-            if (cache is not null) return cache;
-
-#if DEBUG
-            logger.LogInformation("Start get Small Paginated in db................");
-#endif
-            var data = await repo.GetPcSmallWithPagination(page, pageSize, cancellationToken);
-#if DEBUG
-            logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
-#endif
-            if (data is null) return Enumerable.Empty<RDTOPCSmallModel>();
-            List<RDTOPCSmallModel> mappedData = data.Select(Map).ToList();
-            await cacheService.SetAsync(key, mappedData, TimeSpan.FromMinutes(3));
-            return mappedData;
+            var cache = await redisDataWork.GetOrSetCacheAsync(
+                key,
+                async () => {
+                    var data = await repo.GetPcSmallWithPagination(page, pageSize, cancellationToken);
+                    if (data is null) return null;
+                    return data.Select(Map).ToList();
+                },
+                TimeSpan.FromMinutes(3)
+                
+                );
+            return cache ?? Enumerable.Empty<RDTOPCSmallModel>();
         }
 
         public async Task<IEnumerable<RDTOPCModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken)
@@ -171,28 +158,6 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("CheckParam pass, param name = {name}", name);
 #endif
-
-#if DEBUG
-            logger.LogInformation("try get in cache....");
-#endif
-            long version = await cacheService.GetVersionAsync(keyVersion);
-
-            string key = $"pc:v{version}:name={name}";
-
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOPCModel>>(key);
-            if (cache is not null) return cache;
-
-
-#if DEBUG
-            logger.LogInformation("cache is miss");
-#endif
-
-
-
-#if DEBUG
-            logger.LogInformation("Start Search by name in db....................");
-#endif
-
 
             var data = await repo.SearchByName(name, cancellationToken);
 
@@ -205,15 +170,7 @@ namespace ByMyPC.Services.PCService
 #if DEBUG
             logger.LogInformation("Mapping...");
 #endif
-
-
             var mapped = data.Select(Map).ToList();
-
-
-#if DEBUG
-            logger.LogInformation("Caching....");
-#endif
-            await cacheService.SetAsync(key,mapped,TimeSpan.FromMinutes(3));
 
             return mapped;
 
@@ -234,39 +191,19 @@ namespace ByMyPC.Services.PCService
 
             string key = $"pc:v{version}:name={name}:page={page}:pageSize={pageSize}";
 
-            var cache = await cacheService.GetAsync<IEnumerable<RDTOPCSmallModel>>(key);
-            if (cache is not null) return cache;
+            var cache = await redisDataWork.GetOrSetCacheAsync(
+                key,
+                async () => {
+                    var data = await repo.SearchByNameWithPag(name, page, pageSize, cancellationToken);
+                    if (data is null) return null;
+                    return data.Select(Map).ToList();
+                },
+                TimeSpan.FromMinutes(3)
+                );
 
 
-#if DEBUG
-            logger.LogInformation("cache is miss");
-#endif
 
-#if DEBUG
-            logger.LogInformation("Start Search by name in db....................");
-#endif
-
-            var data = await repo.SearchByNameWithPag(name, page, pageSize, cancellationToken);
-
-#if DEBUG
-            logger.LogInformation("End Procces in db, mapping and return, state data = {dataIsNULL}", data is not null ? true : false);
-#endif
-            if (data is null) return Enumerable.Empty<RDTOPCSmallModel>();
-
-#if DEBUG
-            logger.LogInformation("Mapping...");
-#endif
-
-
-            var mapped = data.Select(Map).ToList();
-
-
-#if DEBUG
-            logger.LogInformation("Caching....");
-#endif
-            await cacheService.SetAsync(key, mapped, TimeSpan.FromMinutes(3));
-
-            return mapped;
+            return cache ?? Enumerable.Empty<RDTOPCSmallModel>();
 
         }
 

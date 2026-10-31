@@ -115,6 +115,7 @@ builder.Services.AddHealthChecks().AddNpgSql(
 
 
 builder.Services.AddScoped<ICacheService, RedisCacheService>();
+builder.Services.AddScoped<RedisCacheDataWork>();
 #endregion
 
 builder.Services.AddScoped<ICpuRepo, CpuRepo>();

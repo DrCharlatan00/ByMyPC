@@ -23,7 +23,8 @@ namespace ByMyPC.Services.GPUService
         ILogger<GPUService> logger,
         IValidator<DTOGPUCreateModel> validator,
         ICacheService cache,
-        IHubContext<GPUHub> hub
+        IHubContext<GPUHub> hub,
+        RedisCacheDataWork RedisDataWork
         ) : IGPUService
     {
         private readonly IGPURepo repo = repo;
@@ -32,6 +33,7 @@ namespace ByMyPC.Services.GPUService
         private readonly IValidator<DTOGPUCreateModel> validator = validator;
         private readonly ICacheService cache = cache;
         private readonly IHubContext<GPUHub> hub = hub;
+        private readonly RedisCacheDataWork dataWork = RedisDataWork;
         private const string CacheKeyVersion = "gpu:version";
 
 
@@ -142,51 +144,15 @@ namespace ByMyPC.Services.GPUService
 #endif
 
 
-
-            var cacheData = await cache.GetAsync<IEnumerable<RDTOGPUSmallModel>>(CacheKey);
-
-            if (cacheData is not null) return cacheData;
-
-#if DEBUG
-            logger.LogInformation("Cache in miss, Continue in DB ........");
-#endif
-
-
-
-            var data = await repo.GetSmallModelWithPagination(page, pageSize, cancellationToken);
-
-
-#if DEBUG
-            logger.LogInformation("Db Procces end");
-#endif
-
-
-            if (data is null)
-            {
-                logger.LogInformation("For request with param page {page} and pageSize {size} , returns data is null", page, pageSize);
-                return null;
-            }
-
-#if DEBUG
-            logger.LogInformation("Mapping data.........");
-#endif
-
-
-            var dataR = data.Select(Map).ToList();
-
-#if DEBUG
-            logger.LogInformation("Caching..........");
-#endif
-
-
-            await cache.SetAsync(CacheKey,dataR,TimeSpan.FromMinutes(3));
-
-#if DEBUG
-            logger.LogInformation("Return data");
-#endif
-
-
-            return dataR;
+            var dataCacheWorker = await RedisDataWork.GetOrSetCacheAsync(
+                    CacheKey,
+                    async () => {
+                        var data = await repo.GetSmallModelWithPagination(page, pageSize, cancellationToken);
+                        return data.Select(Map).ToList();
+                    },
+                    TimeSpan.FromMinutes(3)
+                );
+            return dataCacheWorker ?? Enumerable.Empty<RDTOGPUSmallModel>();
         }
 
 
@@ -237,56 +203,16 @@ namespace ByMyPC.Services.GPUService
 
             string CacheKey = $"gpu:v{keyVer}:name={name}:page={page}:pageSize={pageSize}";
 
-            var cacheData = await cache.GetAsync<IEnumerable<RDTOGPUSmallModel>>(CacheKey);
-
-#if DEBUG
-            logger.LogInformation("Try Get Cache...................");
-#endif
-
-
-            if (cacheData is not null) return cacheData;
-
-
-#if DEBUG
-            logger.LogInformation("Cache is miss, continue in DB......................");
-#endif
-
-
-
-            var data = await repo.SearchByNameWithPag(name, page, pageSize, cancellationToken);
-
-#if DEBUG
-            logger.LogInformation("Db end Procces");
-#endif
-
-
-            if (data is null)
-            {
-                logger.LogInformation("For request {func} with param name: {name} , returns data is null", nameof(SearchByNameAsyncWithPag), name);
-                return null;
-            }
-
-
-#if DEBUG
-            logger.LogInformation("Mapping data...............");
-#endif
-
-
-            var dataR = data.Select(Map).ToList();
-
-#if DEBUG
-            logger.LogInformation("Caching.............");
-#endif
-
-
-            await cache.SetAsync(CacheKey, dataR, TimeSpan.FromMinutes(3));
-
-#if DEBUG
-            logger.LogInformation("Return data");
-#endif
-
-
-            return dataR;
+            var cacheData = await RedisDataWork.GetOrSetCacheAsync(
+                    CacheKey,
+                    async () =>
+                    {
+                        IEnumerable<GPUSmallModel>? data = await repo.SearchByNameWithPag(name, page, pageSize, cancellationToken);
+                        return data is not null ? data.Select(Map).ToList() : null;
+                    },
+                    TimeSpan.FromMinutes(3)
+                );
+            return cacheData ?? Enumerable.Empty<RDTOGPUSmallModel>();
         }
 
         public async Task<IEnumerable<RDTOGPUModel>> GetByFilterAsync(DTOGPUFilter filter, CancellationToken cancellationToken)
@@ -309,52 +235,27 @@ namespace ByMyPC.Services.GPUService
 
         public async Task<IEnumerable<RDTOGPUSmallModel>> GetByFilterWithPagAsync(DTOGPUFilter filter, int page, int pageSize, CancellationToken cancellationToken)
         {
+            CheckParam(page, pageSize);
+
+#if DEBUG
+            logger.LogInformation("CheckParam pass, params page = {page} pageSize = {pageSize}", page, pageSize);
+#endif
+
+
             var keyVer = await cache.GetVersionAsync(CacheKeyVersion);
 
             string CacheKey = $"gpu:v{keyVer}:filter{filter}:page={page}:pageSize={pageSize}";
 
-#if DEBUG
-            logger.LogInformation("Try Get in Cache..............");
-#endif
+            var cacheData = await RedisDataWork.GetOrSetCacheAsync(
+                    CacheKey,
+                    async () => {
+                        var data = await repo.GetSmallByFilter(Map(filter), page, pageSize,cancellationToken);
+                        return data.Select(Map).ToList();
+                    },
+                    TimeSpan.FromMinutes(3)
+                );
 
-
-            var cacheData = await cache.GetAsync<IEnumerable<RDTOGPUSmallModel>>(CacheKey);
-
-            if (cacheData is not null) return cacheData;
-
-
-#if DEBUG
-            logger.LogInformation("Cache is miss, continue in db.................");
-#endif
-
-
-            IEnumerable<GPUSmallModel> data = await repo.GetSmallByFilter(Map(filter), page, pageSize, cancellationToken);
-
-#if DEBUG
-            logger.LogInformation("DB End Procces");
-#endif
-
-#if DEBUG
-            logger.LogInformation("Mapping..............");
-#endif
-
-
-
-            var dataR = data.Select(Map).ToList();
-
-
-#if DEBUG
-            logger.LogInformation("Data mapped,Caching..............");
-#endif
-
-            await cache.SetAsync(CacheKey, dataR, TimeSpan.FromMinutes(3));
-
-#if DEBUG
-            logger.LogInformation("Data Cached, return");
-#endif
-
-
-            return dataR;
+            return cacheData ?? Enumerable.Empty<RDTOGPUSmallModel>();
         }
         #endregion
 

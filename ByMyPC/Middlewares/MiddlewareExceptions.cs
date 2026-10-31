@@ -7,13 +7,12 @@ using System.Security.Cryptography;
 
 namespace ByMyPC.Middlewares
 {
-    public class MiddlewareExceptions(RequestDelegate requestDelegate, ILogger<MiddlewareExceptions> logger, PgContext context)
+    public class MiddlewareExceptions(RequestDelegate requestDelegate, ILogger<MiddlewareExceptions> logger)
     {
         private readonly RequestDelegate requestDelegate = requestDelegate;
         private readonly ILogger<MiddlewareExceptions> logger = logger;
-        private readonly PgContext context = context;
 
-        public async Task InvokeAsync(HttpContext httpContext) {
+        public async Task InvokeAsync(HttpContext httpContext, PgContext context) {
             string messageUser = string.Empty;
             int StatusCode = StatusCodes.Status500InternalServerError;
             try
@@ -32,6 +31,7 @@ namespace ByMyPC.Middlewares
                         Details = ex.Message + "\n" + $"Problem created with collection {ecx.NameCollection}, API Set bad request ? = {ecx.BadRq}"
                     };
                     await context.Problems.AddAsync(problemDetail);
+                    await context.SaveChangesAsync();
                 }
                 catch (Exception exProb)
                 {
@@ -73,6 +73,8 @@ namespace ByMyPC.Middlewares
                         Details = ex.Message + "\n" + $"Problem created with collection {exs.NameCollection}, API Set Code = {StatusCode}"
                     };
                     await context.Problems.AddAsync(problemDetail);
+                    await context.SaveChangesAsync();
+
                 }
                 catch (Exception exProb)
                 {
@@ -126,6 +128,8 @@ namespace ByMyPC.Middlewares
                         Details = $"Middleware catch exception, name = {ex.GetType().FullName ?? "unknown"} ex message = {ex.Message}"
                     };
                     await context.Problems.AddAsync(problemDetail);
+                    await context.SaveChangesAsync();
+
                 }
                 catch (Exception exProb)
                 {

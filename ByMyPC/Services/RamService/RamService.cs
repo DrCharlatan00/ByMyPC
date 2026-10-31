@@ -23,7 +23,8 @@ namespace ByMyPC.Services.RamService
             IValidator<DTORAMCreate> validatorCreate,
             IMapper mapper,
             IHubContext<RamHub> hub,
-            ICacheService cacheService
+            ICacheService cacheService,
+            RedisCacheDataWork redisDataWork
         ) : IRamService
     {
         private const string keyVersionCache = "ram:version";
@@ -34,6 +35,7 @@ namespace ByMyPC.Services.RamService
         private readonly IMapper mapper = mapper;
         private readonly IHubContext<RamHub> hub = hub;
         private readonly ICacheService cacheService = cacheService;
+        private readonly RedisCacheDataWork redisDataWork = redisDataWork;
 
         #region Get
         public async Task<IEnumerable<RDTORAMModel>> GetFullAsync(CancellationToken cancellationToken)
@@ -170,45 +172,21 @@ namespace ByMyPC.Services.RamService
 
             string key = $"ram:v{vers}:page={page}:pageSize={pageSize}:small";
 
-            var cache = await cacheService.GetAsync<IEnumerable<RDTORAMSmallModel>>(key);
 
-            if (cache is not null) return cache;
+            var cache = await redisDataWork.GetOrSetCacheAsync(
+                key,
+                async () =>
+                {
+                    var data = await repo.GetSmallWithPagAsync(page, pageSize, cancellationToken);
+                    if (data is null) return null;
+                    return data.Select(Map).ToList();
 
-#if DEBUG
-            logger.LogInformation("Cache is miss");
-#endif
-#if DEBUG
-            logger.LogInformation("Start pagination in db............");
-#endif
+                },
+                TimeSpan.FromMinutes(3)
+            );
 
+            return cache ?? Enumerable.Empty<RDTORAMSmallModel>();
 
-            var data = await repo.GetSmallWithPagAsync(page, pageSize, cancellationToken);
-
-
-#if DEBUG
-            logger.LogInformation("End Db Work");
-#endif
-            if (data is null)
-            {
-                logger.LogWarning("data with full return null , param  page = {page} pageSize = {pageSize}", page, pageSize);
-                return null;
-            }
-
-
-#if DEBUG
-            logger.LogInformation("Mapping data.......");
-#endif
-            var mappedData = data.Select(Map).ToList();
-
-
-#if DEBUG
-            logger.LogInformation("Caching......");
-#endif
-            await cacheService.SetAsync(key, mappedData, TimeSpan.FromMinutes(3));
-
-
-
-            return mappedData;
 
 
         }
@@ -256,45 +234,21 @@ namespace ByMyPC.Services.RamService
 #endif
             long vers = await cacheService.GetVersionAsync(keyVersionCache);
             string key = $"rams:{vers}:name={name}:page={page}:pageSize={pageSize}";
-            var cache = await cacheService.GetAsync<IEnumerable<RDTORAMSmallModel>>(key);
-            if (cache is not null) return cache;
 
+            var cache = await redisDataWork.GetOrSetCacheAsync(
+                key,
+                async () =>
+                {
+                    var data = await repo.SearchByNameWithPagAsync(name, page, pageSize, cancellation);
+                    if (data is null) return null;
+                    return data.Select(Map).ToList();
 
-#if DEBUG
-            logger.LogInformation("cache is miss");
-#endif
+                },
+                TimeSpan.FromMinutes(3)
+            );
 
+            return cache ?? Enumerable.Empty<RDTORAMSmallModel>();
 
-#if DEBUG
-            logger.LogInformation("Start Search in DB.............");
-#endif
-
-            var data = await repo.SearchByNameWithPagAsync(name, page, pageSize, cancellation);
-
-#if DEBUG
-            logger.LogInformation("End Db Procees");
-#endif
-
-            if (data is null)
-            {
-                logger.LogWarning("Search name: {name} return null", name);
-                return null;
-            }
-
-#if DEBUG
-            logger.LogInformation("Mapping.......");
-#endif
-
-
-            List<RDTORAMSmallModel> mappedData = data.Select(Map).ToList();
-
-
-#if DEBUG
-            logger.LogInformation("Caching......");
-#endif
-            await cacheService.SetAsync(key,mappedData,TimeSpan.FromMinutes(3));
-
-            return mappedData;
 
         }
 

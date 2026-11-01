@@ -131,9 +131,22 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Update
-        public async Task<GpuDbModel?> UpdateAsync(GPUUpdateModel model)
+        public async Task<GpuDbModel?> UpdateAsync(GPUUpdateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
-            var old = await context.GPUs.FirstOrDefaultAsync(x => x.ID == model.ID);
+            const string operation = "GPUUpdate";
+
+            var requestHash = Convert.ToHexString(
+                    SHA256.HashData(
+                        JsonSerializer.SerializeToUtf8Bytes(model)
+                        )
+                );
+
+            var isExist = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey,
+                                                                                               cancellationToken);
+
+            if (isExist is not null) return null;
+
+            var old = await context.GPUs.FirstOrDefaultAsync(x => x.ID == model.ID,cancellationToken);
 
             if (old is null) return null;
 
@@ -160,11 +173,35 @@ namespace ByMyPc.Postgresql.Repository
                 Payload = payload
                 
             };
+
+            var idempontencyKey2Db = new IdempotencyRecord {
+                CreateAt = DateTime.UtcNow,
+                ID = Guid.NewGuid(),
+                Operation = operation,
+                RequestHash = requestHash,
+                ResourceId = model.ID,
+                Key = idempotencyKey
+            };
             try
             {
+                await context.idempotencyRecords.AddAsync(idempontencyKey2Db);
                 await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException // With Conrurrent
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+                var conrurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(
+                        x => x.Operation == operation && x.Key == idempotencyKey, cancellationToken
+                    );
+
+                if (conrurrentResult is null) throw;
+                return null;
             }
             catch (Exception ex)
             {
@@ -178,7 +215,7 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Create
-        public async ValueTask<(Guid id, bool IsCreated)> CreateAsync(GPUCreateModel model, string idempontencyKey, CancellationToken cancellationToken)
+        public async ValueTask<(Guid id, bool IsCreated)> CreateAsync(GPUCreateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
 
             const string operation = "GPUCreate";
@@ -190,7 +227,7 @@ namespace ByMyPc.Postgresql.Repository
                 );
 
             var isExisting = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation
-                                                                                                       && x.Key == idempontencyKey,
+                                                                                                       && x.Key == idempotencyKey,
                                                                                                        cancellationToken);
 
             if (isExisting is not null) return (GetPreviousResult(isExisting, requestHash),false);
@@ -226,7 +263,7 @@ namespace ByMyPc.Postgresql.Repository
             var idempontencyKey2Db = new IdempotencyRecord {
                     CreateAt = DateTime.UtcNow,
                     ID = Guid.NewGuid(),
-                    Key = idempontencyKey,
+                    Key = idempotencyKey,
                     RequestHash = requestHash,
                     ResourceId = gpuDbModel.ID,
                     Operation = operation
@@ -251,7 +288,7 @@ namespace ByMyPc.Postgresql.Repository
                 context.ChangeTracker.Clear();
 
                 var conrurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(
-                        x => x.Operation == operation && x.Key == idempontencyKey, cancellationToken
+                        x => x.Operation == operation && x.Key == idempotencyKey, cancellationToken
                     );
 
                 if (conrurrentResult is null) throw;

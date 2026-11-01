@@ -16,6 +16,6 @@ namespace ByMyPC.Services.GPUService
         Task<bool> RemoveAsync(Guid id);
         Task<IEnumerable<RDTOGPUModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOGPUSmallModel>?> SearchByNameAsyncWithPag(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<RDTOGPUModel?> UpdateAsync(DTOGPUUpdateModel model);
+        Task<RDTOGPUModel?> UpdateAsync(DTOGPUUpdateModel model, string? idempotencyKey, CancellationToken cancellationToken);
     }
 }

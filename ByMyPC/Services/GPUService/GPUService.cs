@@ -260,9 +260,16 @@ namespace ByMyPC.Services.GPUService
         #endregion
 
         #region Update
-        public async Task<RDTOGPUModel?> UpdateAsync(DTOGPUUpdateModel model)
+        public async Task<RDTOGPUModel?> UpdateAsync(DTOGPUUpdateModel model, string? idempotencyKey, CancellationToken cancellationToken)
         {
             if (model.ID == Guid.Empty) throw new ArgumentException("You cannot update an empty ID.");
+
+            CheckIdempotencyKey(idempotencyKey);
+
+#if DEBUG
+            logger.LogInformation("Check pass idempotency key");
+#endif
+
 
 
 #if DEBUG
@@ -270,7 +277,7 @@ namespace ByMyPC.Services.GPUService
 #endif
 
 
-            var data = await repo.UpdateAsync(Map(model));
+            var data = await repo.UpdateAsync(Map(model), idempotencyKey!, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("End Db updating");

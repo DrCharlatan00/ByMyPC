@@ -152,9 +152,11 @@ namespace ByMyPC.Controllers
         [HttpPut]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RDTOGPUModel))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Update([FromBody]DTOGPUUpdateModel model) 
+        public async Task<IActionResult> Update([FromBody] DTOGPUUpdateModel model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken) 
         {
-            var result = await service.UpdateAsync(model);
+            var result = await service.UpdateAsync(model,idempotencyKey,cancellationToken);
             return result is not null ? Ok(result) : NotFound();
         }
 
@@ -170,7 +172,9 @@ namespace ByMyPC.Controllers
         /// <returns>The GUID of the created GPU.</returns>
         [HttpPost("create/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
-        public async Task<IActionResult> Create([FromBody] DTOGPUCreateModel model, [FromHeader (Name = "Idempotency-Key")] string? idempotencyKey, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create([FromBody] DTOGPUCreateModel model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken)
         {
             var result  = await service.CreateAsync(model,idempotencyKey,cancellationToken);
             return Ok(result);

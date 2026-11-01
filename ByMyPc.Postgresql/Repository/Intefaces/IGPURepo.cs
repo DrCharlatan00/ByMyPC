@@ -18,6 +18,6 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         ValueTask<bool> RemoveAsync(Guid id);
         Task<IEnumerable<GpuDbModel>?> SearchByName(string name, CancellationToken cancellationToken);
         Task<IEnumerable<GPUSmallModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<GpuDbModel?> UpdateAsync(GPUUpdateModel model);
+        Task<GpuDbModel?> UpdateAsync(GPUUpdateModel model, string idempotencyKey, CancellationToken cancellationToken);
     }
 }

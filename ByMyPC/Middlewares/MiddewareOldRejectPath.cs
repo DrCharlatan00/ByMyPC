@@ -11,12 +11,24 @@
             "api/motherboard/create",
             "api/psu/create",
             "api/ram/create",
-            "api/pc/create"
+            "api/pc/create",
+            "api/gpu/update",
+            "api/cpu/update",
+            "api/motherboard/update",
+            "api/psu/update",
+            "api/ram/update",
+            "api/pc/update",
+            "api/gpu/remove",
+            "api/cpu/remove",
+            "api/motherboard/remove",
+            "api/psu/remove",
+            "api/ram/remove",
+            "api/pc/remove"
         };
 
         public List<string> LegacyPath = new List<string> {
                  "api/gpu/create/v1",
-
+                 "api/gpu/update/v1"
         };
 
         public async Task InvokeAsync(HttpContext content) {

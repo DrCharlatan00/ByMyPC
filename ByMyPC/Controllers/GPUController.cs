@@ -165,10 +165,12 @@ namespace ByMyPC.Controllers
         /// Creates a new GPU.
         /// </summary>
         /// <param name="model">The DTO containing data for the new GPU.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>The GUID of the created GPU.</returns>
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
-        public async Task<IActionResult> Create([FromBody] DTOGPUCreateModel model)
+        public async Task<IActionResult> Create([FromBody] DTOGPUCreateModel model, [FromHeader (Name = "Idempotency-Key")] string? idempotencyKey, CancellationToken cancellationToken)
         {
             var result  = await service.CreateAsync(model);
             return Ok(result);

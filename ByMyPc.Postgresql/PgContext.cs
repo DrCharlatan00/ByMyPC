@@ -25,6 +25,7 @@ namespace ByMyPc.Postgresql
 
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
         public DbSet<ProblemDetailModel> Problems { get; set; }
+        public DbSet<IdempotencyRecord> idempotencyRecords { get; set; }
         public PgContext(DbContextOptions<PgContext> options) : base(options)
         {
             

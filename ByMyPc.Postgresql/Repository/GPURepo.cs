@@ -6,12 +6,15 @@ using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.Marshalling;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace ByMyPc.Postgresql.Repository
 {
@@ -175,8 +178,19 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(GPUCreateModel model)
+        public async ValueTask<Guid> CreateAsync(GPUCreateModel model, string idempontencyKey, CancellationToken cancellationToken)
         {
+
+            const string operation = "GPUCreate";
+
+            var requestHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(model)));
+
+            var isExisting = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempontencyKey, cancellationToken);
+
+            if (isExisting is not null) return GetPreviousResult(isExisting, requestHash);
+
+
+
             GpuDbModel gpuDbModel = new GpuDbModel
             {
                 ID = Guid.NewGuid(),
@@ -202,18 +216,44 @@ namespace ByMyPc.Postgresql.Repository
                 Topic = "gpu-topic",
                 Payload = payload
             };
+
+            var idempontencyKey2Db = new IdempotencyRecord {
+                    CreateAt = DateTime.UtcNow,
+                    ID = Guid.NewGuid(),
+                    Key = idempontencyKey,
+                    RequestHash = requestHash,
+                    ResourceId = gpuDbModel.ID,
+
+            };
             await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
-                await context.OutboxMessages.AddAsync(kafkaMessage);
+                await context.idempotencyRecords.AddAsync(idempontencyKey2Db);
                 await context.GPUs.AddAsync(gpuDbModel);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+
+                var conrurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(
+                        x => x.Operation == operation && x.Key == idempontencyKey, cancellationToken
+                    );
+
+                if (conrurrentResult is null) throw;
+
+                GetPreviousResult(conrurrentResult, requestHash);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new CreateOperationException<GpuDbModel>("Can;t save new model", ex);
+                throw new CreateOperationException<GpuDbModel>("Can't save new model", ex);
             }
             return gpuDbModel.ID;
         }
@@ -255,6 +295,24 @@ namespace ByMyPc.Postgresql.Repository
                 await transaction.RollbackAsync();
                 throw new RemoveOperationException<GpuDbModel>("Item not removed", ex);
             }
+        }
+        #endregion
+
+
+        #region Checker
+        private static Guid GetPreviousResult(
+        IdempotencyRecord record,
+        string requestHash)
+        {
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(record.RequestHash),
+                    Convert.FromHexString(requestHash)))
+            {
+                throw new IdempotencyKeyConflictException(
+                    "this Idempotency-Key in use with other request.");
+            }
+
+            return record.ResourceId;
         }
         #endregion
     }

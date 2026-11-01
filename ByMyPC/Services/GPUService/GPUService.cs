@@ -310,7 +310,7 @@ namespace ByMyPC.Services.GPUService
         #endregion
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(DTOGPUCreateModel model)
+        public async ValueTask<Guid> CreateAsync(DTOGPUCreateModel model, string? idempotencyKey, CancellationToken cancellationToken)
         {
 
 #if DEBUG
@@ -320,13 +320,26 @@ namespace ByMyPC.Services.GPUService
 
             await validator.ValidateAndThrowAsync(model);
 
+            
 
 #if DEBUG
-            logger.LogInformation("Validator pass data, start db Creating............");
+            logger.LogInformation("Validator pass data");
+#endif
+
+#if DEBUG
+            logger.LogInformation("Check idempotencyKey ");
 #endif
 
 
-            var data = await repo.CreateAsync(Map(model));
+            CheckIdempotencyKey(idempotencyKey);
+
+#if DEBUG
+            logger.LogInformation("Check pass, start db Creating............");
+#endif
+
+
+
+            var data = await repo.CreateAsync(Map(model), idempotencyKey!, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("Db end procces, Start Side Service..............");
@@ -427,6 +440,11 @@ namespace ByMyPC.Services.GPUService
         private static void CheckParam(string name)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
+        private static void CheckIdempotencyKey(string? key) {
+            if (key is null) throw new ArgumentNullException("Idempotency key is null");
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+            if (key.Length > 200) throw new ArgumentException("Key is long"); 
         }
         #endregion
     }

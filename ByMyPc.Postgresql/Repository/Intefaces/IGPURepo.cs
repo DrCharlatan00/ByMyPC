@@ -7,7 +7,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
 {
     public interface IGPURepo
     {
-        ValueTask<Guid> CreateAsync(GPUCreateModel model);
+        ValueTask<Guid> CreateAsync(GPUCreateModel model, string idempontencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<GpuDbModel>> GetByFilter(GPUFilterModel filterModel, CancellationToken cancellationToken);
         Task<GpuDbModel?> GetByID(Guid id);
         IAsyncEnumerable<GpuDbModel> GetFullModelsDbAsync(CancellationToken cancellationToken);

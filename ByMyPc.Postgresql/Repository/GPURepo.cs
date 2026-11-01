@@ -178,16 +178,22 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(GPUCreateModel model, string idempontencyKey, CancellationToken cancellationToken)
+        public async ValueTask<(Guid id, bool IsCreated)> CreateAsync(GPUCreateModel model, string idempontencyKey, CancellationToken cancellationToken)
         {
 
             const string operation = "GPUCreate";
 
-            var requestHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(model)));
+            var requestHash = Convert.ToHexString(
+                SHA256.HashData(
+                    JsonSerializer.SerializeToUtf8Bytes(model)
+                    )
+                );
 
-            var isExisting = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempontencyKey, cancellationToken);
+            var isExisting = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation
+                                                                                                       && x.Key == idempontencyKey,
+                                                                                                       cancellationToken);
 
-            if (isExisting is not null) return GetPreviousResult(isExisting, requestHash);
+            if (isExisting is not null) return (GetPreviousResult(isExisting, requestHash),false);
 
 
 
@@ -223,6 +229,7 @@ namespace ByMyPc.Postgresql.Repository
                     Key = idempontencyKey,
                     RequestHash = requestHash,
                     ResourceId = gpuDbModel.ID,
+                    Operation = operation
 
             };
             await using var transaction = await context.Database.BeginTransactionAsync();
@@ -231,10 +238,11 @@ namespace ByMyPc.Postgresql.Repository
                 await context.idempotencyRecords.AddAsync(idempontencyKey2Db);
                 await context.GPUs.AddAsync(gpuDbModel);
                 await context.OutboxMessages.AddAsync(kafkaMessage);
+
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
-            catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException // With Conrurrent
             {
                 SqlState: PostgresErrorCodes.UniqueViolation
             })
@@ -248,14 +256,14 @@ namespace ByMyPc.Postgresql.Repository
 
                 if (conrurrentResult is null) throw;
 
-                GetPreviousResult(conrurrentResult, requestHash);
+                return (GetPreviousResult(conrurrentResult, requestHash), false);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 throw new CreateOperationException<GpuDbModel>("Can't save new model", ex);
             }
-            return gpuDbModel.ID;
+            return (gpuDbModel.ID, true);
         }
         #endregion
 

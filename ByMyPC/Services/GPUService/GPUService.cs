@@ -339,24 +339,26 @@ namespace ByMyPC.Services.GPUService
 
 
 
-            var data = await repo.CreateAsync(Map(model), idempotencyKey!, cancellationToken);
+            (Guid id, bool IsCreated) data = await repo.CreateAsync(Map(model), idempotencyKey!, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("Db end procces, Start Side Service..............");
 #endif
 
+            if (data.IsCreated == true)
+            {
+                var caching = cache.IncrementAsync(CacheKeyVersion);
+                var signal = hub.Clients.All.SendAsync("GPUCreated", data.id);
 
-            var caching = cache.IncrementAsync(CacheKeyVersion);
-            var signal = hub.Clients.All.SendAsync("GPUCreated",data);
 
-            await Task.WhenAll(caching,signal);
-
+                await Task.WhenAll(caching, signal);
+            }
 #if DEBUG
             logger.LogInformation("Return data");
 #endif
 
 
-            return data;
+            return data.id;
 
         }
         #endregion

@@ -43,7 +43,7 @@ namespace ByMyPC.Middlewares
                 messageUser = ecx.BadRq ? "Operation cancelled. The database rejected your data. " : "Server unexpect abord operation, Please contact to Administrator";
                 StatusCode = ecx.BadRq ? StatusCodes.Status400BadRequest : StatusCodes.Status500InternalServerError;
             }
-            catch (IdempotencyKeyConflictException exKey)
+            catch (IdempotencyKeyConflictException)
             {
 
                 httpContext.Response.StatusCode = StatusCodes.Status409Conflict;

@@ -211,6 +211,7 @@ app.UseWhen(
     branche => branche.UseHttpsRedirection()
     );
 
+app.UseMiddleware<MiddewareOldRejectPath>();
 app.UseAuthorization();
 
 app.UseMiddleware<MiddlewareExceptions>();

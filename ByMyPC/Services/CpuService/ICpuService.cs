@@ -5,7 +5,7 @@ namespace ByMyPC.Services.CpuService
 {
     public interface ICpuService
     {
-        ValueTask<Guid> CreateAsync(DTOCpuCreateModel model);
+        ValueTask<Guid> CreateAsync(DTOCpuCreateModel model, string? idempotencyKey, CancellationToken cancellationToken);
         Task<RDTOCpuModel?> GetById(Guid Id);
         Task<IEnumerable<RDTOCpuModel>?> GetFullCpuAsync(CancellationToken cancellationToken);
         Task<IEnumerable<RDTOCpuModel>> GetFullCpuPagination(int page, int pageSize, CancellationToken cancellationToken);
@@ -14,7 +14,7 @@ namespace ByMyPC.Services.CpuService
         ValueTask<bool> RemoveAsync(Guid id);
         Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameAsync(string name, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOCpuSmallModel>> SearchByNameWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<RDTOCpuModel?> UpdateAsync(DTOCpuUpdateModel model);
+        Task<RDTOCpuModel?> UpdateAsync(DTOCpuUpdateModel model, string? idempotencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOCpuModel>?> GetByFilterAsync(DTOCpuFilter filter, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOCpuSmallModel>?> GetByFilterWithPagAsync(DTOCpuFilter filter, int page, int pageSize, CancellationToken cancellationToken);
 

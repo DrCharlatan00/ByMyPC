@@ -323,7 +323,7 @@ namespace ByMyPC.Services.CpuService
 
         }
 
-        public async Task<RDTOCpuModel?> UpdateAsync(DTOCpuUpdateModel model)
+        public async Task<RDTOCpuModel?> UpdateAsync(DTOCpuUpdateModel model,string? idempotencyKey, CancellationToken cancellationToken)
         {
 #if DEBUG
             logger.LogInformation("---------------------Start Work Service--------------------");
@@ -336,7 +336,11 @@ namespace ByMyPC.Services.CpuService
             logger.LogInformation("Check null and validate model = {@model}",model);
 #endif
 
+            CheckIdempotencyKey(idempotencyKey);
 
+#if DEBUG
+            logger.LogInformation("idempotencyKey pass");
+#endif
             ArgumentNullException.ThrowIfNull(model);
             await validatorUpdate.ValidateAndThrowAsync(model);
 
@@ -345,7 +349,7 @@ namespace ByMyPC.Services.CpuService
 #endif
 
 
-            var result = await repo.UpdateAsync(model.id, Map(model));
+            var result = await repo.UpdateAsync(model.id, Map(model),idempotencyKey!,cancellationToken);
 
 #if DEBUG
             logger.LogInformation("Db Update end");
@@ -376,7 +380,7 @@ namespace ByMyPC.Services.CpuService
 
         }
 
-        public async ValueTask<Guid> CreateAsync(DTOCpuCreateModel model)
+        public async ValueTask<Guid> CreateAsync(DTOCpuCreateModel model, string? idempotencyKey, CancellationToken cancellationToken)
         {
 #if DEBUG
             logger.LogInformation("---------------------Start Work Service--------------------");
@@ -387,13 +391,20 @@ namespace ByMyPC.Services.CpuService
 #if DEBUG
             logger.LogInformation("Check null and validate model = {@model}", model);
 #endif
+            CheckIdempotencyKey(idempotencyKey);
+
+#if DEBUG
+            logger.LogInformation("idempotencyKey pass");
+#endif
+
+
             ArgumentNullException.ThrowIfNull(model);
             await validatorCreate.ValidateAndThrowAsync(model);
 
 #if DEBUG
             logger.LogInformation("Model pass, Start Db Creating............");
 #endif
-            var result = await repo.CreateAsync(Map(model));
+            var result = await repo.CreateAsync(Map(model),idempotencyKey!,cancellationToken);
 
 #if DEBUG
             logger.LogInformation("Db end Operation, CPU Created\nStart Side Services.....................");
@@ -497,7 +508,12 @@ namespace ByMyPC.Services.CpuService
 
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
         }
-
+        private static void CheckIdempotencyKey(string? key)
+        {
+            if (key is null) throw new ArgumentNullException("Idempotency key is null");
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+            if (key.Length > 200) throw new ArgumentException("Key is long");
+        }
         private static void CheckParam(string name)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);

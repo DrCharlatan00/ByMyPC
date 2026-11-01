@@ -156,8 +156,11 @@ namespace ByMyPC.Controllers
         [HttpPut]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Update([FromBody] DTOCpuUpdateModel model) {
-            RDTOCpuModel? result = await cpuService.UpdateAsync(model);
+        public async Task<IActionResult> Update([FromBody] DTOCpuUpdateModel model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken)
+        {
+            RDTOCpuModel? result = await cpuService.UpdateAsync(model,idempotencyKey,cancellationToken);
             return result is not null ? Ok(result) : Problem(detail: "Data unexpect not updated");
         }
 
@@ -170,8 +173,10 @@ namespace ByMyPC.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Create([FromBody] DTOCpuCreateModel model) {
-            var result = await cpuService.CreateAsync(model);
+        public async Task<IActionResult> Create([FromBody] DTOCpuCreateModel model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken) {
+            var result = await cpuService.CreateAsync(model, idempotencyKey, cancellationToken);
             return Ok(result);
         }
 

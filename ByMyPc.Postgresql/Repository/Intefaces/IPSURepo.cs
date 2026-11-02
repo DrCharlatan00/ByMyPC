@@ -7,7 +7,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
 {
     public interface IPSURepo
     {
-        Task<Guid> CreateAsync(PSUCreateModel model);
+        Task<(Guid id, bool IsCreated)> CreateAsync(PSUCreateModel model, string idempotencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<PSUDbModel>> GetByFilterFull(PSUFilterModel filterModel, CancellationToken cancellation);
         Task<IEnumerable<PSUSmallModel>> GetByFilterSmall(PSUFilterModel filterModel, CancellationToken cancellation);
         Task<PSUDbModel?> GetByIdAsync(Guid id);
@@ -18,6 +18,6 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         ValueTask<bool> RemoveAsync(Guid id);
         IAsyncEnumerable<PSUDbModel> SearchByNameAsyncEnumerable(string name, CancellationToken cancellationToken);
         IAsyncEnumerable<PSUSmallModel> SearchByNameSmallAsyncEnumerable(string name, CancellationToken cancellation);
-        Task<PSUDbModel?> UpdateAsync(PSUUpdateModel model);
+        Task<PSUDbModel?> UpdateAsync(PSUUpdateModel model, string idempotencyKey, CancellationToken cancellationToken);
     }
 }

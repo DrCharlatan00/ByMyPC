@@ -5,8 +5,11 @@ using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Arm;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 
 namespace ByMyPc.Postgresql.Repository
@@ -121,8 +124,22 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Update
-        public async Task<RamDbModel?> UpdateAsync(RamUpdateModel model)
+        public async Task<RamDbModel?> UpdateAsync(RamUpdateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
+            const string operation = "RAMUpdate";
+
+            var requestHash = Convert.ToHexString(
+                    SHA256.HashData(
+                        JsonSerializer.SerializeToUtf8Bytes(model)
+                        )
+                );
+
+            var isExist = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey,
+                                                                                               cancellationToken);
+
+            if (isExist is not null) return null;
+
+
             var old = await context.RAMs.FirstOrDefaultAsync(x => x.ID == model.ID);
             if (old is null) return null;
 
@@ -151,12 +168,38 @@ namespace ByMyPc.Postgresql.Repository
                 CreatedAt = DateTime.UtcNow,
                 Payload = payload
             };
+
+            var idempontencyKey2Db = new IdempotencyRecord
+            {
+                CreateAt = DateTime.UtcNow,
+                ID = Guid.NewGuid(),
+                Operation = operation,
+                RequestHash = requestHash,
+                ResourceId = model.ID,
+                Key = idempotencyKey
+            };
+
             await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.idempotencyRecords.AddAsync(idempontencyKey2Db);
                 await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException // With Conrurrent
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+                var conrurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(
+                        x => x.Operation == operation && x.Key == idempotencyKey, cancellationToken
+                    );
+
+                if (conrurrentResult is null) throw;
+                return null;
             }
             catch (Exception ex)
             {
@@ -168,8 +211,22 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(RamCreateModel model)
+        public async ValueTask<(Guid,bool)> CreateAsync(RamCreateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
+            const string operation = "RAMCreate";
+
+            var requestHash = Convert.ToHexString(
+                SHA256.HashData(
+                    JsonSerializer.SerializeToUtf8Bytes(model)
+                    )
+                );
+
+            var isExisting = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation
+                                                                                                       && x.Key == idempotencyKey,
+                                                                                                       cancellationToken);
+
+            if (isExisting is not null) return (GetPreviousResult(isExisting, requestHash),false);
+
             RamDbModel ramDb = new RamDbModel
             {
                 ID = Guid.NewGuid(),
@@ -179,6 +236,7 @@ namespace ByMyPc.Postgresql.Repository
                 Frequency = model.Frequency,
                 IsLive = model.IsLive,
             };
+
             var payload = new PayloadKafka("RAMCreated",
                                            componentID: ramDb.ID,
                                            name: ramDb.Name,
@@ -192,20 +250,49 @@ namespace ByMyPc.Postgresql.Repository
                 CreatedAt = DateTime.UtcNow,
                 Payload = payload
             };
+
+            var idempontencyKey2Db = new IdempotencyRecord
+            {
+                CreateAt = DateTime.UtcNow,
+                ID = Guid.NewGuid(),
+                Key = idempotencyKey,
+                RequestHash = requestHash,
+                ResourceId = ramDb.ID,
+                Operation = operation
+
+            };
+
             await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.idempotencyRecords.AddAsync(idempontencyKey2Db);
                 await context.RAMs.AddAsync(ramDb);
                 await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException // With Conrurrent
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+
+                var conrurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(
+                        x => x.Operation == operation && x.Key == idempotencyKey, cancellationToken
+                    );
+
+                if (conrurrentResult is null) throw;
+
+                return (GetPreviousResult(conrurrentResult, requestHash),false);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 throw new CreateOperationException<RamDbModel>("Create is fail", ex);
             }
-            return ramDb.ID;
+            return (ramDb.ID,true);
         }
         #endregion
 
@@ -241,6 +328,23 @@ namespace ByMyPc.Postgresql.Repository
                 throw new RemoveOperationException<RamDbModel>("Remove is failed", ex);
             }
             return true;
+        }
+        #endregion
+
+        #region Checker
+        private static Guid GetPreviousResult(
+        IdempotencyRecord record,
+        string requestHash)
+        {
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(record.RequestHash),
+                    Convert.FromHexString(requestHash)))
+            {
+                throw new IdempotencyKeyConflictException(
+                    "this Idempotency-Key in use with other request.");
+            }
+
+            return record.ResourceId;
         }
         #endregion
     }

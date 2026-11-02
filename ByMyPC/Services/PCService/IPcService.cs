@@ -6,7 +6,7 @@ namespace ByMyPC.Services.PCService
     public interface IPcService
     {
         ValueTask<bool> AttachAsync(Guid idPc, Guid idComponent, WithAttachOrDeattachToPc attachComponent);
-        ValueTask<Guid> CreateAsync(DTOPCCreateModel createModel);
+        ValueTask<Guid> CreateAsync(DTOPCCreateModel createModel, string? idempotencyKey, CancellationToken cancellationToken);
         ValueTask<bool> DeattachAsync(Guid idPc, Guid idComponent, WithAttachOrDeattachToPc attachComponent);
         Task<IEnumerable<RDTOPCModel>?> GetByFilterAsync(DTOPCFilter filter, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOPCSmallModel>?> GetByFilterAsyncPaginated(DTOPCFilter filter, int page, int pageSize, CancellationToken cancellationToken);
@@ -18,6 +18,6 @@ namespace ByMyPC.Services.PCService
         ValueTask<bool> RemoveAsync(Guid id);
         Task<IEnumerable<RDTOPCModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOPCSmallModel>?> SearchByNamePaginatedAsync(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<RDTOPCModel?> UpdateAsync(DTOPCUpdateModel updateModel);
+        Task<RDTOPCModel?> UpdateAsync(DTOPCUpdateModel updateModel, string? idempotencyKey, CancellationToken cancellationToken);
     }
 }

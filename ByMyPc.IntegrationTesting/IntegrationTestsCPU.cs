@@ -3,7 +3,6 @@ using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Models.CpuModels.DTO;
 using ByMyPC.Models.CpuModels.RDTO;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
 using Xunit.Abstractions;
@@ -29,13 +28,8 @@ namespace ByMyPc.IntegrationTesting
         {
             var request = await httpClient.GetAsync("/api/cpu");
             if (!request.IsSuccessStatusCode) output.WriteLine(request.ReasonPhrase);
-
             Assert.True(request.IsSuccessStatusCode);
-
-            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
-
-            Assert.NotNull(data);
-
+            Assert.NotNull(await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>());
         }
 
         [Fact]
@@ -43,13 +37,8 @@ namespace ByMyPc.IntegrationTesting
         {
             var request = await httpClient.GetAsync("/api/cpu/full");
             if (!request.IsSuccessStatusCode) output.WriteLine(request.ReasonPhrase);
-
             Assert.True(request.IsSuccessStatusCode);
-
-            var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuModel>>();
-
-            Assert.NotNull(data);
-
+            Assert.NotNull(await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuModel>>());
         }
 
         [Fact]
@@ -57,50 +46,26 @@ namespace ByMyPc.IntegrationTesting
         {
             var request = await httpClient.GetAsync("/api/cpu/full-pag?page=1&pageSize=1");
             if (!request.IsSuccessStatusCode) output.WriteLine(request.ReasonPhrase);
-
             Assert.True(request.IsSuccessStatusCode);
-
             var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuModel>>();
-
             Assert.NotNull(data);
             Assert.Single(data);
         }
 
         [Fact]
-        public async Task TestGetByID() {
-            Guid id = Guid.Empty;
-            CpuCreateModel testmodel = new CpuCreateModel
-            (
-                "Test",
-                "Test"
-            );
-            try
-            {
-                id = await cpuRepo.CreateAsync(testmodel);
-            }
-            catch (Exception ex) {
-                Assert.Fail($"Can't create model {ex.Message}");
-            }
-
+        public async Task TestGetByID()
+        {
+            var id = await CreateCpuDirectly();
             try
             {
                 var request = await httpClient.GetAsync($"/api/cpu/{id}");
                 if (!request.IsSuccessStatusCode) output.WriteLine(request.ReasonPhrase);
-
                 Assert.True(request.IsSuccessStatusCode);
-
                 var data = await request.Content.ReadFromJsonAsync<RDTOCpuModel>();
-
                 Assert.NotNull(data);
                 Assert.Equal("Test", data.Name);
             }
-            catch (Exception ex)
-            {
-                Assert.Fail(ex.Message);
-            }
-            finally {
-                await cpuRepo.RemoveAsync(id);
-            }
+            finally { await cpuRepo.RemoveAsync(id); }
         }
 
         [Fact]
@@ -108,250 +73,122 @@ namespace ByMyPc.IntegrationTesting
         {
             var request = await httpClient.GetAsync("/api/cpu/card-pag?page=1&pageSize=1");
             if (!request.IsSuccessStatusCode) output.WriteLine(request.ReasonPhrase);
-
             Assert.True(request.IsSuccessStatusCode);
-
             var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
-
             Assert.NotNull(data);
-
             Assert.Single(data);
-
         }
 
         [Fact]
         public async Task TestSearchCardPag()
         {
-            Guid id = Guid.Empty;
-            CpuCreateModel testmodel = new CpuCreateModel
-            (
-                "Test",
-                "Test"
-            );
-            try
-            {
-                id = await cpuRepo.CreateAsync(testmodel);
-            }
-            catch (Exception ex)
-            {
-                Assert.Fail($"Can't create model {ex.Message}");
-            }
+            var id = await CreateCpuDirectly();
             try
             {
                 var request = await httpClient.GetAsync("/api/cpu/search-name-pag?name=Test&page=1&pageSize=1");
                 if (!request.IsSuccessStatusCode) output.WriteLine(request.ReasonPhrase);
-
                 Assert.True(request.IsSuccessStatusCode);
-
                 var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
-
                 Assert.NotNull(data);
-
-                Assert.Single(data);
-                Assert.Equal("Test", data.First().Name);
-
+                Assert.Contains(data, item => item.Name == "Test");
             }
-            catch (Exception ex)
-            {
-                Assert.Fail(ex.Message);
-            }
-            finally
-            {
-                await cpuRepo.RemoveAsync(id);
-            }
-
+            finally { await cpuRepo.RemoveAsync(id); }
         }
-
 
         [Fact]
         public async Task TestSearchCard()
         {
-            Guid id = Guid.Empty;
-            CpuCreateModel testmodel = new CpuCreateModel
-            (
-                "Test",
-                "Test"
-            );
-            try
-            {
-                id = await cpuRepo.CreateAsync(testmodel);
-            }
-            catch (Exception ex)
-            {
-                Assert.Fail($"Can't create model {ex.Message}");
-            }
+            var id = await CreateCpuDirectly();
             try
             {
                 var request = await httpClient.GetAsync("/api/cpu/search-name?name=Test");
                 if (!request.IsSuccessStatusCode) output.WriteLine(request.ReasonPhrase);
-
                 Assert.True(request.IsSuccessStatusCode);
-
                 var data = await request.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
-
                 Assert.NotNull(data);
-                foreach (var item in data)
-                {
-                    if (!item.Name.Contains("Test"))
-                    {
-                        Assert.Fail("Items not contains Test");
-                    }
-                }
-
+                Assert.All(data, item => Assert.Contains("Test", item.Name));
             }
-            catch (Exception ex)
-            {
-                Assert.Fail(ex.Message);
-            }
-            finally
-            {
-                await cpuRepo.RemoveAsync(id);
-            }
-
+            finally { await cpuRepo.RemoveAsync(id); }
         }
 
         [Fact]
-        public async Task TestFilters() {
-            DTOCpuFilter filter = new DTOCpuFilter
-            {
-                ByLive = true,
-                ByName = null,
-                ByQuantityCores = null
-            };
-
-            var result = await httpClient.GetAsync($"/api/cpu/by-filter?ByName={filter.ByName}&ByLive={filter.ByLive}&ByQuantityCores={filter.ByQuantityCores}");
+        public async Task TestFilters()
+        {
+            var result = await httpClient.GetAsync("/api/cpu/by-filter?ByLive=true");
             if (!result.IsSuccessStatusCode) output.WriteLine(result.ReasonPhrase);
-
             Assert.True(result.IsSuccessStatusCode);
-
-            IEnumerable<RDTOCpuModel>? data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuModel>>();
+            var data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuModel>>();
             Assert.NotNull(data);
-            Assert.True(data.First().IsLive);
-
+            Assert.All(data, item => Assert.True(item.IsLive));
         }
 
         [Fact]
         public async Task TestFiltersWithPagination()
         {
-            DTOCpuFilter filter = new DTOCpuFilter
-            {
-                ByLive = true,
-                ByName = null,
-                ByQuantityCores = null
-            };
-
-            var result = await httpClient.GetAsync($"/api/cpu/by-filter-pag?ByName={filter.ByName}&ByLive={filter.ByLive}&ByQuantityCores={filter.ByQuantityCores}&page=1&pageSize=1");
+            var result = await httpClient.GetAsync("/api/cpu/by-filter-pag?ByLive=true&page=1&pageSize=1");
             if (!result.IsSuccessStatusCode) output.WriteLine(result.ReasonPhrase);
-
             Assert.True(result.IsSuccessStatusCode);
-
-            IEnumerable<RDTOCpuSmallModel>? data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
+            var data = await result.Content.ReadFromJsonAsync<IEnumerable<RDTOCpuSmallModel>>();
             Assert.NotNull(data);
-            //foreach (var item in data)
-            //{
-            //    output.WriteLine($"Item {item.Name}  {item.Socket}");
-            //}
-            
-
         }
 
         [Fact]
-        public async Task TestUpdate() {
-            Guid id = Guid.Empty;
-            CpuCreateModel testmodel = new CpuCreateModel
-            (
-                "Test",
-                "Test"
-            );
+        public async Task TestUpdate()
+        {
+            var id = await CreateCpuDirectly();
             try
             {
-                id = await cpuRepo.CreateAsync(testmodel);
-            }
-            catch (Exception ex)
-            {
-                Assert.Fail($"Can't create model {ex.Message}");
-            }
-            try
-            {
-                DTOCpuUpdateModel updateModel = new DTOCpuUpdateModel(
-                        id: id,
-                        Name: "TTTT",
-                        Socket: "TTTT",
-                        Frequency: 0,
-                        Count_Cores: 0,
-                        false
-                    );
-
-                var result = await httpClient.PutAsJsonAsync("/api/cpu/", updateModel);
-                if (!result.IsSuccessStatusCode) output.WriteLine(result.ReasonPhrase);
-
-                Assert.True(result.IsSuccessStatusCode);
-
-                var data = await result.Content.ReadFromJsonAsync<RDTOCpuModel>();
-
+                var updateModel = new DTOCpuUpdateModel(id, "TTTT", "TTTT", 0, 0, false);
+                using var request = new HttpRequestMessage(HttpMethod.Put, "/api/cpu/update/v2")
+                {
+                    Content = JsonContent.Create(updateModel)
+                };
+                request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+                var response = await httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode) output.WriteLine(response.ReasonPhrase);
+                Assert.True(response.IsSuccessStatusCode);
+                var data = await response.Content.ReadFromJsonAsync<RDTOCpuModel>();
                 Assert.NotNull(data);
                 Assert.Equal("TTTT", data.Name);
             }
-            catch (Exception ex)
-            {
-                Assert.Fail(ex.Message);
-            }
-            finally {
-                await cpuRepo.RemoveAsync(id);
-            }
+            finally { await cpuRepo.RemoveAsync(id); }
         }
 
         [Fact]
-        public async Task TestCreate() {
-            CpuCreateModel testmodel = new CpuCreateModel
-            (
-             "Test",
-             "Test"
-            );
-            try
+        public async Task TestCreate()
+        {
+            var testModel = new DTOCpuCreateModel("Test", "Test", 0, 0, false);
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/cpu/create/v2")
             {
-                var result = await httpClient.PostAsJsonAsync("/api/cpu/", testmodel);
-                if (!result.IsSuccessStatusCode) output.WriteLine(result.ReasonPhrase);
-
-                Assert.True(result.IsSuccessStatusCode);
-                Guid guid = await result.Content.ReadFromJsonAsync<Guid>();
-
-                if (await cpuRepo.GetByIDAsync(guid) is null) Assert.Fail("Product not in db, but answer is ok");
-
-                await cpuRepo.RemoveAsync(guid);
-
-            }
-            catch (Exception ex)
-            {
-                Assert.Fail(ex.Message);
-            }
+                Content = JsonContent.Create(testModel)
+            };
+            request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            var response = await httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode) output.WriteLine(response.ReasonPhrase);
+            Assert.True(response.IsSuccessStatusCode);
+            var id = await response.Content.ReadFromJsonAsync<Guid>();
+            Assert.NotNull(await cpuRepo.GetByIDAsync(id));
+            await cpuRepo.RemoveAsync(id);
         }
 
         [Fact]
-        public async Task TestRemove() {
-            Guid id = Guid.Empty;
-            CpuCreateModel testmodel = new CpuCreateModel
-            (
-                "Test",
-                "Test"
-            );
-            try
-            {
-                id = await cpuRepo.CreateAsync(testmodel);
-            }
-            catch (Exception ex)
-            {
-                Assert.Fail($"Can't create model {ex.Message}");
-            }
-
+        public async Task TestRemove()
+        {
+            var id = await CreateCpuDirectly();
             var result = await httpClient.DeleteAsync($"/api/cpu/{id}");
             if (!result.IsSuccessStatusCode) output.WriteLine(result.ReasonPhrase);
-
             Assert.True(result.IsSuccessStatusCode);
-
-            if (await cpuRepo.GetByIDAsync(id) is not null) Assert.Fail("Data not removed in db");
-
+            Assert.Null(await cpuRepo.GetByIDAsync(id));
         }
-    
+
+        private async Task<Guid> CreateCpuDirectly()
+        {
+            var model = new CpuCreateModel("Test", "Test");
+            var (id, _) = await cpuRepo.CreateAsync(
+                model,
+                Guid.NewGuid().ToString(),
+                CancellationToken.None);
+            return id;
+        }
     }
 }

@@ -278,8 +278,15 @@ namespace ByMyPC.Services.HDDService
 
         #region Update
 
-        public async Task<RDTOHDDModel?> UpdateAsync(DTOHDDUpdateModel model)
+        public async Task<RDTOHDDModel?> UpdateAsync(DTOHDDUpdateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
+
+            CheckIdempotencyKey(idempotencyKey);
+
+#if DEBUG
+            logger.LogInformation("idempotency is ok");
+#endif
+
 
 #if DEBUG
             logger.LogInformation("Start proccesing Update, Get model {model}",model);
@@ -301,7 +308,7 @@ namespace ByMyPC.Services.HDDService
             logger.LogInformation("Start db procces update....");
 #endif
 
-            var result = await repo.UpdateAsync(updateModel);
+            var result = await repo.UpdateAsync(updateModel, idempotencyKey, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("Procces update is end");
@@ -333,7 +340,7 @@ namespace ByMyPC.Services.HDDService
 
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(DTOHDDCreateModel dto)
+        public async ValueTask<Guid> CreateAsync(DTOHDDCreateModel dto, string idempotencyKey, CancellationToken cancellationToken)
         {
 
 #if DEBUG
@@ -347,9 +354,9 @@ namespace ByMyPC.Services.HDDService
 
 
             await validator.ValidateAndThrowAsync(dto);
-
+            CheckIdempotencyKey(idempotencyKey);
 #if DEBUG
-            logger.LogInformation("DTO Is Ok, Validator skip DTO");
+            logger.LogInformation("DTO and idempotency Is Ok, Validator skip DTO");
 #endif
 
 
@@ -368,7 +375,7 @@ namespace ByMyPC.Services.HDDService
             logger.LogInformation("Start creating in db...");
 #endif
 
-            Guid id = await repo.CreateAsync(model);
+            (Guid id, bool IsCreated) res = await repo.CreateAsync(model, idempotencyKey, cancellationToken);
 
 
 #if DEBUG
@@ -379,18 +386,19 @@ namespace ByMyPC.Services.HDDService
             logger.LogInformation("Side Services start");
 #endif
 
+            if (!res.IsCreated)
+            {
 
-
-            var RedisUpdate = cacheService.IncrementAsync("hdd:version");
-            var signalR = hub.Clients.All.SendAsync("HDDCreated", id);
-            await Task.WhenAll(signalR, RedisUpdate);
-
+                var RedisUpdate = cacheService.IncrementAsync("hdd:version");
+                var signalR = hub.Clients.All.SendAsync("HDDCreated", res.id);
+                await Task.WhenAll(signalR, RedisUpdate);
+            }
 #if DEBUG
-            logger.LogInformation("Return ID = {id}",id);
+            logger.LogInformation("Return ID = {id}", res.id);
 #endif
 
 
-            return id;
+            return res.id;
         }
 
         public async Task<Guid> CreateAndAttachAsync(DTOHDDCreateModel dto, Guid pcId) {
@@ -554,7 +562,12 @@ namespace ByMyPC.Services.HDDService
 
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
         }
-
+        private static void CheckIdempotencyKey(string? key)
+        {
+            if (key is null) throw new ArgumentNullException("Idempotency key is null");
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+            if (key.Length > 200) throw new ArgumentException("Key is long");
+        }
         private static void CheckParam(string name)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);

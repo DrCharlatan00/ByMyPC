@@ -7,7 +7,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
 {
     public interface IGPURepo
     {
-        ValueTask<Guid> CreateAsync(GPUCreateModel model);
+        ValueTask<(Guid id, bool IsCreated)> CreateAsync(GPUCreateModel model, string idempontencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<GpuDbModel>> GetByFilter(GPUFilterModel filterModel, CancellationToken cancellationToken);
         Task<GpuDbModel?> GetByID(Guid id);
         IAsyncEnumerable<GpuDbModel> GetFullModelsDbAsync(CancellationToken cancellationToken);
@@ -18,6 +18,6 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         ValueTask<bool> RemoveAsync(Guid id);
         Task<IEnumerable<GpuDbModel>?> SearchByName(string name, CancellationToken cancellationToken);
         Task<IEnumerable<GPUSmallModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<GpuDbModel?> UpdateAsync(GPUUpdateModel model);
+        Task<GpuDbModel?> UpdateAsync(GPUUpdateModel model, string idempotencyKey, CancellationToken cancellationToken);
     }
 }

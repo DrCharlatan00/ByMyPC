@@ -6,7 +6,7 @@ namespace ByMyPC.Services.PSUService
 {
     public interface IPSUService
     {
-        Task<Guid> CreateAsync(DTOPSUModelCreate model);
+        Task<Guid> CreateAsync(DTOPSUModelCreate model, string? idempotencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOPSUModel>> GetByFilterFull(DTOPSUFilterModel model, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOPSUSmallModel>> GetByFilterSmall(DTOPSUFilterModel model, CancellationToken cancellationToken);
         Task<RDTOPSUModel?> GetByID(Guid id);
@@ -17,6 +17,6 @@ namespace ByMyPC.Services.PSUService
         ValueTask<bool> RemoveAsync(Guid id);
         Task<IEnumerable<RDTOPSUSmallModel>> SearchByName(string name, CancellationToken cancellation);
         Task<IEnumerable<RDTOPSUModel>> SearchByNameFullAsync(string name, CancellationToken cancellation);
-        Task<RDTOPSUModel?> UpdateAsync(DTOPSUModelUpdate model);
+        Task<RDTOPSUModel?> UpdateAsync(DTOPSUModelUpdate model, string? idempotencyKey, CancellationToken cancellationToken);
     }
 }

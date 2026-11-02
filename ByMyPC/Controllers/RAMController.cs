@@ -179,14 +179,18 @@ namespace ByMyPC.Controllers
         /// Updates an existing RAM module.
         /// </summary>
         /// <param name="dto">The data used to update the RAM module.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>
         /// An HTTP 200 response containing the update result if successful;
         /// otherwise, an HTTP 404 response.
         /// </returns>
-        [HttpPut]
-        public async Task<IActionResult> Update([FromBody] DTORAMUpdate dto)
+        [HttpPut("update/v2")]
+        public async Task<IActionResult> Update([FromBody] DTORAMUpdate dto,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken)
         {
-            var result = await service.UpdateAsync(dto);
+            var result = await service.UpdateAsync(dto, idempotencyKey, cancellationToken);
             return result is not null ? Ok(result) : NotFound();
         }
 
@@ -198,11 +202,15 @@ namespace ByMyPC.Controllers
         /// Creates a new RAM module.
         /// </summary>
         /// <param name="dto">The data used to create the RAM module.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>An HTTP 200 response containing the creation result.</returns>
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] DTORAMCreate dto)
+        [HttpPost("create/v2")]
+        public async Task<IActionResult> Create([FromBody] DTORAMCreate dto,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken)
         {
-            var result = await service.CreateAsync(dto);
+            var result = await service.CreateAsync(dto, idempotencyKey, cancellationToken);
             return Ok(result);
         }
 

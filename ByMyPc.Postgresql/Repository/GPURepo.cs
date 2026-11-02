@@ -6,12 +6,15 @@ using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.Marshalling;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace ByMyPc.Postgresql.Repository
 {
@@ -128,9 +131,22 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Update
-        public async Task<GpuDbModel?> UpdateAsync(GPUUpdateModel model)
+        public async Task<GpuDbModel?> UpdateAsync(GPUUpdateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
-            var old = await context.GPUs.FirstOrDefaultAsync(x => x.ID == model.ID);
+            const string operation = "GPUUpdate";
+
+            var requestHash = Convert.ToHexString(
+                    SHA256.HashData(
+                        JsonSerializer.SerializeToUtf8Bytes(model)
+                        )
+                );
+
+            var isExist = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey,
+                                                                                               cancellationToken);
+
+            if (isExist is not null) return null;
+
+            var old = await context.GPUs.FirstOrDefaultAsync(x => x.ID == model.ID,cancellationToken);
 
             if (old is null) return null;
 
@@ -157,11 +173,35 @@ namespace ByMyPc.Postgresql.Repository
                 Payload = payload
                 
             };
+
+            var idempontencyKey2Db = new IdempotencyRecord {
+                CreateAt = DateTime.UtcNow,
+                ID = Guid.NewGuid(),
+                Operation = operation,
+                RequestHash = requestHash,
+                ResourceId = model.ID,
+                Key = idempotencyKey
+            };
             try
             {
+                await context.idempotencyRecords.AddAsync(idempontencyKey2Db);
                 await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException // With Conrurrent
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+                var conrurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(
+                        x => x.Operation == operation && x.Key == idempotencyKey, cancellationToken
+                    );
+
+                if (conrurrentResult is null) throw;
+                return null;
             }
             catch (Exception ex)
             {
@@ -175,8 +215,25 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(GPUCreateModel model)
+        public async ValueTask<(Guid id, bool IsCreated)> CreateAsync(GPUCreateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
+
+            const string operation = "GPUCreate";
+
+            var requestHash = Convert.ToHexString(
+                SHA256.HashData(
+                    JsonSerializer.SerializeToUtf8Bytes(model)
+                    )
+                );
+
+            var isExisting = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation
+                                                                                                       && x.Key == idempotencyKey,
+                                                                                                       cancellationToken);
+
+            if (isExisting is not null) return (GetPreviousResult(isExisting, requestHash),false);
+
+
+
             GpuDbModel gpuDbModel = new GpuDbModel
             {
                 ID = Guid.NewGuid(),
@@ -202,20 +259,48 @@ namespace ByMyPc.Postgresql.Repository
                 Topic = "gpu-topic",
                 Payload = payload
             };
+
+            var idempontencyKey2Db = new IdempotencyRecord {
+                    CreateAt = DateTime.UtcNow,
+                    ID = Guid.NewGuid(),
+                    Key = idempotencyKey,
+                    RequestHash = requestHash,
+                    ResourceId = gpuDbModel.ID,
+                    Operation = operation
+
+            };
             await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
-                await context.OutboxMessages.AddAsync(kafkaMessage);
+                await context.idempotencyRecords.AddAsync(idempontencyKey2Db);
                 await context.GPUs.AddAsync(gpuDbModel);
+                await context.OutboxMessages.AddAsync(kafkaMessage);
+
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException // With Conrurrent
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+
+                var conrurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(
+                        x => x.Operation == operation && x.Key == idempotencyKey, cancellationToken
+                    );
+
+                if (conrurrentResult is null) throw;
+
+                return (GetPreviousResult(conrurrentResult, requestHash), false);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new CreateOperationException<GpuDbModel>("Can;t save new model", ex);
+                throw new CreateOperationException<GpuDbModel>("Can't save new model", ex);
             }
-            return gpuDbModel.ID;
+            return (gpuDbModel.ID, true);
         }
         #endregion
 
@@ -255,6 +340,24 @@ namespace ByMyPc.Postgresql.Repository
                 await transaction.RollbackAsync();
                 throw new RemoveOperationException<GpuDbModel>("Item not removed", ex);
             }
+        }
+        #endregion
+
+
+        #region Checker
+        private static Guid GetPreviousResult(
+        IdempotencyRecord record,
+        string requestHash)
+        {
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(record.RequestHash),
+                    Convert.FromHexString(requestHash)))
+            {
+                throw new IdempotencyKeyConflictException(
+                    "this Idempotency-Key in use with other request.");
+            }
+
+            return record.ResourceId;
         }
         #endregion
     }

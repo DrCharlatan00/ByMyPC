@@ -65,7 +65,7 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 PowerWatt = 450,
                 Size = PSU_SIZE.ATX,
             };
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
 
 
         }
@@ -112,7 +112,7 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 PowerWatt = 450,
                 Size = PSU_SIZE.ATX,
             };
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
 
 
         }
@@ -158,7 +158,7 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 PowerWatt = 450,
                 Size = PSU_SIZE.ATX,
             };
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
 
 
         }
@@ -203,7 +203,7 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 PowerWatt = 450,
                 Size = PSU_SIZE.ATX,
             };
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
 
 
         }
@@ -285,7 +285,7 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 PowerWatt = 450,
                 Size = PSU_SIZE.ATX,
             };
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
 
 
         }
@@ -329,7 +329,7 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 PowerWatt = 450,
                 Size = PSU_SIZE.ATX,
             };
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
 
 
         }
@@ -372,7 +372,7 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 PowerWatt = 450,
                 Size = PSU_SIZE.ATX,
             };
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
 
 
         }
@@ -392,7 +392,12 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 null
                 );
 
-            var request = await client.PutAsJsonAsync($"api/psu/",update);
+            using var updateRequest = new HttpRequestMessage(HttpMethod.Put, "api/psu/update/v2")
+            {
+                Content = JsonContent.Create(update)
+            };
+            updateRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            var request = await client.SendAsync(updateRequest);
             Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
 
             var data = await request.Content.ReadFromJsonAsync<RDTOPSUModel>();
@@ -424,7 +429,12 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 false
                 );
 
-            var request = await client.PostAsJsonAsync($"api/psu/", create);
+            using var createRequest = new HttpRequestMessage(HttpMethod.Post, "api/psu/create/v2")
+            {
+                Content = JsonContent.Create(create)
+            };
+            createRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            var request = await client.SendAsync(createRequest);
             Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
 
             var data = await request.Content.ReadFromJsonAsync<Guid>();
@@ -453,7 +463,7 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
                 PowerWatt = 450,
                 Size = PSU_SIZE.ATX,
             };
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
 
 
         }
@@ -468,3 +478,5 @@ public class TestPSUCRUD : IClassFixture<TestWebApplicationFactory>
 
     }
 }
+
+

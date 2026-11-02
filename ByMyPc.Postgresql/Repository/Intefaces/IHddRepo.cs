@@ -16,9 +16,9 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         Task<IEnumerable<HDDSmallModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken);
         Task<IEnumerable<HDDDbModel>?> GetByFilter(HDDFilterModel filterModel, CancellationToken cancellationToken);
         Task<IEnumerable<HDDSmallModel>?> GetSmallByFilter(HDDFilterModel filterModel, int page, int pageSize, CancellationToken cancellationToken);
-        Task<HDDDbModel?> UpdateAsync(HDDUpdateModel updateModel);
+        Task<HDDDbModel?> UpdateAsync(HDDUpdateModel updateModel, string idempotencyKey, CancellationToken cancellationToken);
         Task<Guid> CreateAndAttach(HDDCreateModel model, Guid PcId);
-        ValueTask<Guid> CreateAsync(HDDCreateModel createModel);
+        ValueTask<(Guid id, bool IsCreated)> CreateAsync(HDDCreateModel createModel, string idempotencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<HDDDbModel>> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken);
     }
 }

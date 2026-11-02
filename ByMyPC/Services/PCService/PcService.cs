@@ -6,7 +6,6 @@ using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Caching;
 using ByMyPC.Hubs;
-using ByMyPC.Models;
 using ByMyPC.Models.CpuModels.RDTO;
 using ByMyPC.Models.GPUModels.RDTO;
 using ByMyPC.Models.HDDModels.RDTO;
@@ -18,8 +17,7 @@ using ByMyPC.Models.RAMModels.RDTO;
 using ByMyPC.Services.Kafka;
 using FluentValidation;
 using Microsoft.AspNetCore.SignalR;
-using System.Runtime.InteropServices;
-using System.Text.Json;
+
 
 
 namespace ByMyPC.Services.PCService
@@ -252,13 +250,13 @@ namespace ByMyPC.Services.PCService
         #endregion
 
         #region Update
-        public async Task<RDTOPCModel?> UpdateAsync(DTOPCUpdateModel updateModel)
+        public async Task<RDTOPCModel?> UpdateAsync(DTOPCUpdateModel updateModel, string? idempotencyKey, CancellationToken cancellationToken)
         {
 
 #if DEBUG
             logger.LogInformation("Update model is = {@updateModel}", updateModel);
 #endif
-
+            CheckIdempotencyKey(idempotencyKey);
 
             PcUpdateModel model = new PcUpdateModel(updateModel.id, updateModel.name);
 
@@ -267,7 +265,7 @@ namespace ByMyPC.Services.PCService
 #endif
 
 
-            PcDbModel? updatedModel = await repo.UpdateAsync(model);
+            PcDbModel? updatedModel = await repo.UpdateAsync(model, idempotencyKey!, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("End Db Procces, Mapping model ");
@@ -297,9 +295,8 @@ namespace ByMyPC.Services.PCService
         #endregion
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(DTOPCCreateModel createModel)
+        public async ValueTask<Guid> CreateAsync(DTOPCCreateModel createModel, string? idempotencyKey, CancellationToken cancellationToken)
         {
-
 #if DEBUG
             logger.LogInformation("Service start Creating new object. DTO = {@DTO}", createModel);
 #endif
@@ -309,7 +306,7 @@ namespace ByMyPC.Services.PCService
             logger.LogInformation("Validate..............");
 #endif
 
-
+            CheckIdempotencyKey(idempotencyKey);
             await validator.ValidateAndThrowAsync(createModel);
 
 
@@ -321,22 +318,25 @@ namespace ByMyPC.Services.PCService
             logger.LogInformation("Validator pass data, Start Create in Db..................");
 #endif
 
-            Guid res = await repo.CreateAsync(model);
+            (Guid id, bool IsCreated) res = await repo.CreateAsync(model, idempotencyKey, cancellationToken);
 #if DEBUG
             logger.LogInformation("Creating end");
 #endif
-            var hubWork = hub.Clients.All.SendAsync("PcCreated", res);
-            var cacheWork = cacheService.IncrementAsync(keyVersion);
+            if (!res.IsCreated)
+            {
+                var hubWork = hub.Clients.All.SendAsync("PcCreated", res);
+                var cacheWork = cacheService.IncrementAsync(keyVersion);
 
 
 #if DEBUG
-            logger.LogInformation("Start Side Services");
+                logger.LogInformation("Start Side Services");
 #endif
 
 
-            await Task.WhenAll(hubWork, cacheWork);
+                await Task.WhenAll(hubWork, cacheWork);
+            }
 
-            return res;
+            return res.id;
         }
 
         #endregion
@@ -541,7 +541,12 @@ namespace ByMyPC.Services.PCService
 
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
         }
-
+        private static void CheckIdempotencyKey(string? key)
+        {
+            if (key is null) throw new ArgumentNullException("Idempotency key is null");
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+            if (key.Length > 200) throw new ArgumentException("Key is long");
+        }
         private static void CheckParam(string name)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);

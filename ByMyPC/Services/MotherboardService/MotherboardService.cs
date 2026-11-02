@@ -221,8 +221,9 @@ namespace ByMyPC.Services.MotherboardService
         #endregion
 
         #region Update
-        public async Task<RDTOModelMotherboard?> UpdateAsync(DTOMotherboardUpdateModel model)
+        public async Task<RDTOModelMotherboard?> UpdateAsync(DTOMotherboardUpdateModel model, string? idempotencyKey, CancellationToken cancellationToken)
         {
+            CheckIdempotencyKey(idempotencyKey);
             await validatorUpdate.ValidateAndThrowAsync(model);
 
 #if DEBUG
@@ -233,7 +234,7 @@ namespace ByMyPC.Services.MotherboardService
             logger.LogInformation("Start updating in DB");
 #endif
 
-            MotherboardDbModel? res = await repo.UpdateAsync(Map(model));
+            MotherboardDbModel? res = await repo.UpdateAsync(Map(model), idempotencyKey!, cancellationToken);
 
 #if DEBUG
             logger.LogInformation(
@@ -275,11 +276,11 @@ namespace ByMyPC.Services.MotherboardService
         #endregion
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(DTOMotherboardCreateModel model)
+        public async ValueTask<Guid> CreateAsync(DTOMotherboardCreateModel model, string? idempotencyKey, CancellationToken cancellationToken)
         {
             try
             {
-
+                CheckIdempotencyKey(idempotencyKey);
                 await validatorCreate.ValidateAndThrowAsync(model);
 
 #if DEBUG
@@ -291,7 +292,7 @@ namespace ByMyPC.Services.MotherboardService
                 logger.LogInformation("Procces create start in db, model information = {@model}", model);
 #endif
 
-                Guid id = await repo.CreateAsync(Map(model));
+                Guid id = await repo.CreateAsync(Map(model),idempotencyKey!,cancellationToken);
 
 #if DEBUG
                 logger.LogInformation("Motherboard created");
@@ -405,7 +406,12 @@ namespace ByMyPC.Services.MotherboardService
 
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
         }
-
+        private static void CheckIdempotencyKey(string? key)
+        {
+            if (key is null) throw new ArgumentNullException("Idempotency key is null");
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+            if (key.Length > 200) throw new ArgumentException("Key is long");
+        }
         private static void CheckParam(string name)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);

@@ -150,10 +150,13 @@ namespace ByMyPC.Controllers
         /// <param name="model">Model new infomation for motherboard</param>
         /// <returns>Updated Motherboard</returns>
         /// <remarks>Do not fotgot hand over id in model </remarks>
-        [HttpPut]
+        [HttpPut("update/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RDTOModelMotherboard))]
-        public async Task<IActionResult> Update([FromBody] DTOMotherboardUpdateModel model) {
-            RDTOModelMotherboard? result = await service.UpdateAsync(model);
+        public async Task<IActionResult> Update([FromBody] DTOMotherboardUpdateModel model,
+                [FromHeader(Name = "Idempotency-Key")] string? idempontencykey,
+                CancellationToken cancellation
+            ) {
+            RDTOModelMotherboard? result = await service.UpdateAsync(model, idempontencykey, cancellation);
             return result is not null ? Ok(result) : Problem(detail: "Unexpect you model not update, check data in model");
         }
 
@@ -164,9 +167,12 @@ namespace ByMyPC.Controllers
         /// <returns>Guid new model</returns>
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
-        public async Task<IActionResult> Create([FromBody] DTOMotherboardCreateModel model)
+        public async Task<IActionResult> Create(
+            [FromBody] DTOMotherboardCreateModel model,
+            [FromHeader(Name = "Idempotency-Key")] string? idempontencykey,
+            CancellationToken cancellation)
         {
-            Guid id = await service.CreateAsync(model);
+            Guid id = await service.CreateAsync(model,idempontencykey,cancellation);
             return Ok(id);    
         }
 

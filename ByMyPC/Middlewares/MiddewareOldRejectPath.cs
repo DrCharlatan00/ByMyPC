@@ -28,7 +28,13 @@
 
         public List<string> LegacyPath = new List<string> {
                  "api/gpu/create/v1",
-                 "api/gpu/update/v1"
+                 "api/gpu/update/v1",
+                 "api/cpu/create/v1",
+                 "api/cpu/update/v1",
+                 "api/hdd/create/v1",
+                 "api/hdd/update/v1",
+                 "api/motherboard/create/v1",
+                 "api/motherboard/update/v1",
         };
 
         public async Task InvokeAsync(HttpContext content) {

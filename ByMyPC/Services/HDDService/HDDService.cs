@@ -278,8 +278,15 @@ namespace ByMyPC.Services.HDDService
 
         #region Update
 
-        public async Task<RDTOHDDModel?> UpdateAsync(DTOHDDUpdateModel model)
+        public async Task<RDTOHDDModel?> UpdateAsync(DTOHDDUpdateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
+
+            CheckIdempotencyKey(idempotencyKey);
+
+#if DEBUG
+            logger.LogInformation("idempotency is ok");
+#endif
+
 
 #if DEBUG
             logger.LogInformation("Start proccesing Update, Get model {model}",model);
@@ -301,7 +308,7 @@ namespace ByMyPC.Services.HDDService
             logger.LogInformation("Start db procces update....");
 #endif
 
-            var result = await repo.UpdateAsync(updateModel);
+            var result = await repo.UpdateAsync(updateModel, idempotencyKey, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("Procces update is end");
@@ -333,7 +340,7 @@ namespace ByMyPC.Services.HDDService
 
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(DTOHDDCreateModel dto)
+        public async ValueTask<Guid> CreateAsync(DTOHDDCreateModel dto, string idempotencyKey, CancellationToken cancellationToken)
         {
 
 #if DEBUG
@@ -347,9 +354,9 @@ namespace ByMyPC.Services.HDDService
 
 
             await validator.ValidateAndThrowAsync(dto);
-
+            CheckIdempotencyKey(idempotencyKey);
 #if DEBUG
-            logger.LogInformation("DTO Is Ok, Validator skip DTO");
+            logger.LogInformation("DTO and idempotency Is Ok, Validator skip DTO");
 #endif
 
 
@@ -368,7 +375,7 @@ namespace ByMyPC.Services.HDDService
             logger.LogInformation("Start creating in db...");
 #endif
 
-            Guid id = await repo.CreateAsync(model);
+            Guid id = await repo.CreateAsync(model, idempotencyKey, cancellationToken);
 
 
 #if DEBUG
@@ -554,7 +561,12 @@ namespace ByMyPC.Services.HDDService
 
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
         }
-
+        private static void CheckIdempotencyKey(string? key)
+        {
+            if (key is null) throw new ArgumentNullException("Idempotency key is null");
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+            if (key.Length > 200) throw new ArgumentException("Key is long");
+        }
         private static void CheckParam(string name)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);

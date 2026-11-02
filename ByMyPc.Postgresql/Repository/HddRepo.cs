@@ -127,7 +127,7 @@ namespace ByMyPc.Postgresql.Repository
 
             if (isExist is not null) return null;
 
-            var old = await context.HDDs.FirstOrDefaultAsync(x => x.ID == updateModel.id);
+            var old = await context.HDDs.FirstOrDefaultAsync(x => x.ID == updateModel.id, cancellationToken);
             if (old is null) return null;
             
 

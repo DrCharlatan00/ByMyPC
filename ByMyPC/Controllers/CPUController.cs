@@ -153,7 +153,7 @@ namespace ByMyPC.Controllers
         /// <param name="model">The parameters you want to update </param>
         /// <returns>Return full updated model</returns>
         /// <remarks>Do not forgot add to model id</remarks>
-        [HttpPut]
+        [HttpPut("update/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Update([FromBody] DTOCpuUpdateModel model,
@@ -170,7 +170,7 @@ namespace ByMyPC.Controllers
         /// <param name="model">The parameters you want to create</param>
         /// <returns>Guid created Cpu</returns>
         /// <remarks>ID is generated automatically in db</remarks>
-        [HttpPost]
+        [HttpPost("create/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Create([FromBody] DTOCpuCreateModel model,

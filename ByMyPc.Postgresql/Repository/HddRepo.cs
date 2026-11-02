@@ -5,7 +5,12 @@ using ByMyPc.Postgresql.Exceptions;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using System.Data;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace ByMyPc.Postgresql.Repository
 {
@@ -110,11 +115,21 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Update
-        public async Task<HDDDbModel?> UpdateAsync(HDDUpdateModel updateModel)
+        public async Task<HDDDbModel?> UpdateAsync(HDDUpdateModel updateModel, string idempotencyKey, CancellationToken cancellationToken)
         {
-            var old = await context.HDDs.FirstOrDefaultAsync(x => x.ID == updateModel.id);
+            const string operation = "HDDUpdate";
 
+            var requestHash = Convert.ToHexString(
+                    SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(idempotencyKey))
+                );
+
+            var isExist = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey, cancellationToken);
+
+            if (isExist is not null) return null;
+
+            var old = await context.HDDs.FirstOrDefaultAsync(x => x.ID == updateModel.id);
             if (old is null) return null;
+            
 
             old.Name = updateModel.Name ?? old.Name;
             old.connector = updateModel.connector ?? old.connector;
@@ -134,13 +149,36 @@ namespace ByMyPc.Postgresql.Repository
                 AggregateId = old.ID.ToString(),
                 Payload = payload
             };
+
+            var idempotencyKey2Db = new IdempotencyRecord {
+                CreateAt = DateTime.UtcNow,
+                ID = Guid.NewGuid(),
+                Key = idempotencyKey,
+                Operation = operation,
+                RequestHash = requestHash,
+                ResourceId = old.ID
+            };
             await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.idempotencyRecords.AddAsync(idempotencyKey2Db);
                 await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return old;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            }) 
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+
+                var concurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey,
+                                                                                                            cancellationToken);
+                if (concurrentResult is null) throw;
+
+                return null;
             }
             catch (Exception ex)
             {
@@ -151,8 +189,22 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(HDDCreateModel createModel)
+        public async ValueTask<Guid> CreateAsync(HDDCreateModel createModel, string idempotencyKey, CancellationToken cancellationToken)
         {
+            const string operation = "HDDCreate";
+
+            var requestHash = Convert.ToHexString(
+                    SHA256.HashData(
+                            JsonSerializer.SerializeToUtf8Bytes(idempotencyKey)
+                        )
+                );
+
+            var isExist = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation 
+                                                                                                && x.Key == idempotencyKey, 
+                                                                                                cancellationToken
+            );
+            if (isExist is not null) return GetPreviousResult(isExist,requestHash);
+
             HDDDbModel newModel = new HDDDbModel
             {
                 ID = Guid.NewGuid(),
@@ -175,14 +227,39 @@ namespace ByMyPc.Postgresql.Repository
                 AggregateId = newModel.ID.ToString(),
                 Payload = payload
             };
+
+            var idempotencyKey2Db = new IdempotencyRecord { 
+                CreateAt = DateTime.UtcNow,
+                ID = Guid.NewGuid(),
+                Key = idempotencyKey,
+                RequestHash = requestHash,
+                Operation = operation,
+                ResourceId = newModel.ID
+            };
             await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.idempotencyRecords.AddAsync(idempotencyKey2Db);
                 await context.HDDs.AddAsync(newModel);
                 await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return newModel.ID;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            }) 
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+
+                var concurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation 
+                                                                                                                 && x.Key == idempotencyKey,
+                                                                                                                 cancellationToken);
+
+                if (concurrentResult is null) throw;
+
+                return GetPreviousResult(concurrentResult,requestHash);
             }
             catch (Exception ex)
             {
@@ -299,6 +376,24 @@ DateTimeOffset.UtcNow
                 await transaction.RollbackAsync();
                 throw new OperationsException<object>("Error when create or add to pc,Create and Attaching is aborted",false, ex);
             }
+        }
+        #endregion
+
+
+        #region Checker
+        private static Guid GetPreviousResult(
+        IdempotencyRecord record,
+        string requestHash)
+        {
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(record.RequestHash),
+                    Convert.FromHexString(requestHash)))
+            {
+                throw new IdempotencyKeyConflictException(
+                    "this Idempotency-Key in use with other request.");
+            }
+
+            return record.ResourceId;
         }
         #endregion
     }

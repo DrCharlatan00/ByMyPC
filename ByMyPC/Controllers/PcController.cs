@@ -186,13 +186,19 @@ namespace ByMyPC.Controllers
         /// Updates an existing PC configuration.
         /// </summary>
         /// <param name="dto">The data used to update the PC configuration.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>
         /// The updated PC configuration, or a not-found response if it does not exist.
         /// </returns>
-        [HttpPut]
-        public async Task<IActionResult> Update([FromBody] DTOPCUpdateModel dto)
+        [HttpPut("update/v2")]
+        public async Task<IActionResult> Update(
+            [FromBody] DTOPCUpdateModel dto,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken
+            )
         {
-            var item = await service.UpdateAsync(dto);
+            var item = await service.UpdateAsync(dto, idempotencyKey, cancellationToken);
             return item is not null ? Ok(item) : NotFound();
         }
 
@@ -204,11 +210,15 @@ namespace ByMyPC.Controllers
         /// Creates a new PC configuration.
         /// </summary>
         /// <param name="dto">The data required to create the PC configuration.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>The created PC configuration.</returns>
-        [HttpPost]
-        public async Task<IActionResult> Create(DTOPCCreateModel dto)
+        [HttpPost("create/v2")]
+        public async Task<IActionResult> Create([FromBody] DTOPCCreateModel dto,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
         {
-            var item = await service.CreateAsync(dto);
+            var item = await service.CreateAsync(dto, idempotencyKey, cancellationToken);
             return Ok(item);
         }
 

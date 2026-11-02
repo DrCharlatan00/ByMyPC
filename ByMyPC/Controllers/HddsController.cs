@@ -132,11 +132,17 @@ namespace ByMyPC.Controllers
         /// Put method for update HDD
         /// </summary>
         /// <param name="model">Model new infomation for HDD</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Updated model HDD</returns>
         /// <remarks>Do not fotgot hand over id in model</remarks>
-        [HttpPut]
-        public async Task<IActionResult> Update([FromBody] DTOHDDUpdateModel model) {
-            var result = await service.UpdateAsync(model);
+        [HttpPut("update/v2")]
+        public async Task<IActionResult> Update(
+            [FromBody] DTOHDDUpdateModel model,
+            [FromHeader(Name = "Idempontency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken
+            ) {
+            var result = await service.UpdateAsync(model, idempotencyKey, cancellationToken);
             return result is not null ? Ok(result) : BadRequest();
         }
         #endregion
@@ -146,10 +152,17 @@ namespace ByMyPC.Controllers
         /// Post method for create new HDD
         /// </summary>
         /// <param name="model">New HDD</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Guid new HDD</returns>
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] DTOHDDCreateModel model) {
-            var result = await service.CreateAsync(model);
+        [HttpPost("create/v2")]
+        public async Task<IActionResult> Create(
+            [FromBody] DTOHDDCreateModel model,
+            [FromHeader(Name = "Idempontency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken
+            )
+        {
+            var result = await service.CreateAsync(model,idempotencyKey,cancellationToken);
             return Ok(result);
         }
         /// <summary>

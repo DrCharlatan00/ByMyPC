@@ -108,6 +108,41 @@ namespace ByMyPc.Postgresql.Migrations
                     b.ToTable("HDDs");
                 });
 
+            modelBuilder.Entity("ByMyPc.Postgresql.Models.IdempotencyRecord", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("Operation", "Key")
+                        .IsUnique();
+
+                    b.ToTable("idempotencyRecords");
+                });
+
             modelBuilder.Entity("ByMyPc.Postgresql.Models.MotherboardDbModel", b =>
                 {
                     b.Property<Guid>("ID")

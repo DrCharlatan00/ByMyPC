@@ -41,9 +41,12 @@ public class TestPcCRUD : IClassFixture<TestWebApplicationFactory>, IDisposable
     {
         name ??= $"IntegrationTest-{Guid.NewGuid():N}";
 
-        var response = await client.PostAsJsonAsync(
-            "api/pc",
-            new DTOPCCreateModel(name));
+        using var createRequest = new HttpRequestMessage(HttpMethod.Post, "api/pc/create/v2")
+        {
+            Content = JsonContent.Create(new DTOPCCreateModel(name))
+        };
+        createRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+        var response = await client.SendAsync(createRequest);
 
         response.EnsureSuccessStatusCode();
 
@@ -246,9 +249,12 @@ public class TestPcCRUD : IClassFixture<TestWebApplicationFactory>, IDisposable
 
         try
         {
-            using var response = await client.PostAsJsonAsync(
-                "api/pc",
-                new DTOPCCreateModel(name));
+            using var createRequest = new HttpRequestMessage(HttpMethod.Post, "api/pc/create/v2")
+            {
+                Content = JsonContent.Create(new DTOPCCreateModel(name))
+            };
+            createRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            using var response = await client.SendAsync(createRequest);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -276,9 +282,12 @@ public class TestPcCRUD : IClassFixture<TestWebApplicationFactory>, IDisposable
 
         try
         {
-            using var response = await client.PutAsJsonAsync(
-                "api/pc",
-                new DTOPCUpdateModel(id, newName));
+            using var updateRequest = new HttpRequestMessage(HttpMethod.Put, "api/pc/update/v2")
+            {
+                Content = JsonContent.Create(new DTOPCUpdateModel(id, newName))
+            };
+            updateRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            using var response = await client.SendAsync(updateRequest);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -338,11 +347,11 @@ public class TestPcCRUD : IClassFixture<TestWebApplicationFactory>, IDisposable
         Guid pcId = Guid.Empty;
         try
         {
-            cpuid =  await cpuRepo.CreateAsync(new Postgresql.CRUDModel.Operation.CpuCreateModel(
+            (cpuid, _) = await cpuRepo.CreateAsync(new Postgresql.CRUDModel.Operation.CpuCreateModel(
                 "TestAttach",
                 "LGA775"
-                  ));
-            pcId = await repo.CreateAsync(new Postgresql.CRUDModel.Operation.PcCreateModel("testAttach"));
+                  ), Guid.NewGuid().ToString(), CancellationToken.None);
+            (pcId, _) = await repo.CreateAsync(new Postgresql.CRUDModel.Operation.PcCreateModel("testAttach"), Guid.NewGuid().ToString(), CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -378,15 +387,15 @@ public class TestPcCRUD : IClassFixture<TestWebApplicationFactory>, IDisposable
         Guid pcId = Guid.Empty;
         try
         {
-            gpuid = await gpuRepo.CreateAsync(new Postgresql.CRUDModel.Operation.GPUCreateModel(
+            (gpuid, _) = await gpuRepo.CreateAsync(new Postgresql.CRUDModel.Operation.GPUCreateModel(
                 "TestAttach",
                  1888,
                  VideoSlots.UNKNOWN,
                  0,
                  "2",
                  "321"
-                  ));
-            pcId = await repo.CreateAsync(new Postgresql.CRUDModel.Operation.PcCreateModel("testAttach"));
+                  ), Guid.NewGuid().ToString(), CancellationToken.None);
+            (pcId, _) = await repo.CreateAsync(new Postgresql.CRUDModel.Operation.PcCreateModel("testAttach"), Guid.NewGuid().ToString(), CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -422,7 +431,7 @@ public class TestPcCRUD : IClassFixture<TestWebApplicationFactory>, IDisposable
         Guid pcId = Guid.Empty;
         try
         {
-            mbid = await mbRepo.CreateAsync(new Postgresql.CRUDModel.Operation.MotherboardCreateModel(
+            (mbid, _) = await mbRepo.CreateAsync(new Postgresql.CRUDModel.Operation.MotherboardCreateModel(
                     "OlegNostalgy",
                     "LGA775",
                     1,
@@ -431,8 +440,8 @@ public class TestPcCRUD : IClassFixture<TestWebApplicationFactory>, IDisposable
                     false,
                     false,
                     VideoSlots.AGP
-                  ));
-            pcId = await repo.CreateAsync(new Postgresql.CRUDModel.Operation.PcCreateModel("testAttach"));
+                  ), Guid.NewGuid().ToString(), CancellationToken.None);
+            (pcId, _) = await repo.CreateAsync(new Postgresql.CRUDModel.Operation.PcCreateModel("testAttach"), Guid.NewGuid().ToString(), CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -468,15 +477,15 @@ public class TestPcCRUD : IClassFixture<TestWebApplicationFactory>, IDisposable
         Guid pcId = Guid.Empty;
         try
         {
-            psuid = await psuRepo.CreateAsync(new Postgresql.CRUDModel.Operation.PSUCreateModel(
+            (psuid, _) = await psuRepo.CreateAsync(new Postgresql.CRUDModel.Operation.PSUCreateModel(
                     "Aerocool vx",
                     250,
                     false,
                     PSU_SIZE.ATX,
                     false,
                     false
-                  ));
-            pcId = await repo.CreateAsync(new Postgresql.CRUDModel.Operation.PcCreateModel("testAttach"));
+                  ), Guid.NewGuid().ToString(), CancellationToken.None);
+            (pcId, _) = await repo.CreateAsync(new Postgresql.CRUDModel.Operation.PcCreateModel("testAttach"), Guid.NewGuid().ToString(), CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -511,3 +520,5 @@ public class TestPcCRUD : IClassFixture<TestWebApplicationFactory>, IDisposable
         scope.Dispose();
     }
 }
+
+

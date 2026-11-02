@@ -6,7 +6,6 @@ namespace ByMyPC.Services.HDDService
     public interface IHDDService
     {
         ValueTask<bool> AttachHdd(Guid pcId, Guid HddId);
-        ValueTask<Guid> CreateAsync(DTOHDDCreateModel dto);
         ValueTask<bool> DeattachHdd(Guid pcId, Guid HddId);
         Task<IEnumerable<RDTOHDDModel>?> GetByFilter(DTOHDDFilter filter, CancellationToken cancellationToken);
         Task<RDTOHDDModel?> GetByIdAsync(Guid id);
@@ -16,9 +15,10 @@ namespace ByMyPC.Services.HDDService
         Task<IEnumerable<RDTOHDDModel>> GetModelsAsync(CancellationToken cancellationToken);
         Task<IEnumerable<RDTOHDDModel>?> SearchByName(string name, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOHDDCardModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<RDTOHDDModel?> UpdateAsync(DTOHDDUpdateModel model);
         Task<Guid> CreateAndAttachAsync(DTOHDDCreateModel dto, Guid pcId);
         ValueTask<bool> RemoveAsync(Guid id);
         Task<IEnumerable<RDTOHDDModel>?> GetFullWithPagination(int page, int pageSize, CancellationToken cancellationToken);
+        ValueTask<Guid> CreateAsync(DTOHDDCreateModel dto, string idempotencyKey, CancellationToken cancellationToken);
+        Task<RDTOHDDModel?> UpdateAsync(DTOHDDUpdateModel model, string idempotencyKey, CancellationToken cancellationToken);
     }
 }

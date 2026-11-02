@@ -167,12 +167,16 @@ namespace ByMyPC.Controllers
         /// Updates an existing PSU.
         /// </summary>
         /// <param name="model">The DTO containing fields to update.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>The updated PSU model.</returns>
-        [HttpPut]
+        [HttpPut("update/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RDTOPSUModel))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Update([FromBody] DTOPSUModelUpdate model) {
-            RDTOPSUModel? data = await service.UpdateAsync(model);
+        public async Task<IActionResult> Update([FromBody] DTOPSUModelUpdate model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken) {
+            RDTOPSUModel? data = await service.UpdateAsync(model,idempotencyKey,cancellationToken);
             return data is not null?  Ok(data) : NotFound();
         }
 
@@ -185,13 +189,17 @@ namespace ByMyPC.Controllers
         /// Creates a new PSU.
         /// </summary>
         /// <param name="model">The DTO containing data for the new PSU.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>The GUID of the created PSU.</returns>
-        [HttpPost]
+        [HttpPost("create/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Create([FromBody] DTOPSUModelCreate model)
+        public async Task<IActionResult> Create([FromBody] DTOPSUModelCreate model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken)
         {
-            Guid id = await service.CreateAsync(model);
+            Guid id = await service.CreateAsync(model,idempotencyKey,cancellationToken);
             return Ok(id);
         }
         #endregion

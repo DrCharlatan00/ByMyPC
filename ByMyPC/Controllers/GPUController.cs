@@ -148,13 +148,17 @@ namespace ByMyPC.Controllers
         /// Updates an existing GPU.
         /// </summary>
         /// <param name="model">The DTO containing fields to update.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>The updated GPU model.</returns>
-        [HttpPut]
+        [HttpPut("update/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RDTOGPUModel))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Update([FromBody]DTOGPUUpdateModel model) 
+        public async Task<IActionResult> Update([FromBody] DTOGPUUpdateModel model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken) 
         {
-            var result = await service.UpdateAsync(model);
+            var result = await service.UpdateAsync(model,idempotencyKey,cancellationToken);
             return result is not null ? Ok(result) : NotFound();
         }
 
@@ -165,14 +169,19 @@ namespace ByMyPC.Controllers
         /// Creates a new GPU.
         /// </summary>
         /// <param name="model">The DTO containing data for the new GPU.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>The GUID of the created GPU.</returns>
-        [HttpPost]
+        [HttpPost("create/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
-        public async Task<IActionResult> Create([FromBody] DTOGPUCreateModel model)
+        public async Task<IActionResult> Create([FromBody] DTOGPUCreateModel model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken)
         {
-            var result  = await service.CreateAsync(model);
+            var result  = await service.CreateAsync(model,idempotencyKey,cancellationToken);
             return Ok(result);
         }
+
         #endregion
 
 

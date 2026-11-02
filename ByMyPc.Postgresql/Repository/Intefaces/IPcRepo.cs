@@ -11,7 +11,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         ValueTask<bool> AttachGPUAsync(Guid idPc, Guid IdGPU);
         ValueTask<bool> AttachMotherboardAsync(Guid idPc, Guid IdMotherboard);
         ValueTask<bool> AttachPSUAsync(Guid idPc, Guid IdPSU);
-        ValueTask<Guid> CreateAsync(PcCreateModel model);
+        ValueTask<(Guid id, bool IsCreated)> CreateAsync(PcCreateModel model, string idempotencyKey, CancellationToken cancellationToken);
         ValueTask<bool> DeattachCPUAsync(Guid idPc, Guid idCPU);
         ValueTask<bool> DeattachGPUAsync(Guid idPc, Guid idGPU);
         ValueTask<bool> DeattachMotherbordAsync(Guid idPc, Guid idMotherboard);
@@ -26,6 +26,6 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         ValueTask<bool> RemoveAsync(Guid id);
         Task<IEnumerable<PcDbModel>?> SearchByName(string name, CancellationToken cancellationToken);
         Task<IEnumerable<PcSmallModel>?> SearchByNameWithPag(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<PcDbModel?> UpdateAsync(PcUpdateModel model);
+        Task<PcDbModel?> UpdateAsync(PcUpdateModel model, string idempotencyKey, CancellationToken cancellationToken);
     }
 }

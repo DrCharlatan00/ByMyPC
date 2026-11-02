@@ -289,7 +289,7 @@ namespace ByMyPC.Services.RamService
         #endregion
 
         #region Update
-        public async Task<RDTORAMModel?> UpdateAsync(DTORAMUpdate update)
+        public async Task<RDTORAMModel?> UpdateAsync(DTORAMUpdate update, string? idempotencyKey, CancellationToken cancellationToken)
         {
 
 #if DEBUG
@@ -302,7 +302,7 @@ namespace ByMyPC.Services.RamService
 #endif
 
 
-            var ans = await repo.UpdateAsync(Map(update));
+            var ans = await repo.UpdateAsync(Map(update),idempotencyKey!,cancellationToken);
 
 
 #if DEBUG
@@ -320,7 +320,7 @@ namespace ByMyPC.Services.RamService
         #endregion
 
         #region Create
-        public async ValueTask<Guid> CreateAsync(DTORAMCreate dto)
+        public async ValueTask<Guid> CreateAsync(DTORAMCreate dto, string? idempotencyKey, CancellationToken cancellationToken)
         {
             await validatorCreate.ValidateAndThrowAsync(dto);
 
@@ -333,15 +333,18 @@ namespace ByMyPC.Services.RamService
             logger.LogInformation("Start Procces creating in Db............. ");
 #endif
 
-            Guid id = await repo.CreateAsync(Map(dto));
+            var res = await repo.CreateAsync(Map(dto), idempotencyKey!, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("Procces create in db end");
 #endif
-            var hubWork = hub.Clients.All.SendAsync("RamCreated",id);
-            var cacheWork = cacheService.IncrementAsync(keyVersionCache);
-            await Task.WhenAll(hubWork, cacheWork);
-            return id;
+            if (!res.Item2)
+            {
+                var hubWork = hub.Clients.All.SendAsync("RamCreated", res.Item1);
+                var cacheWork = cacheService.IncrementAsync(keyVersionCache);
+                await Task.WhenAll(hubWork, cacheWork);
+            }
+            return res.Item1;
 
 
         }

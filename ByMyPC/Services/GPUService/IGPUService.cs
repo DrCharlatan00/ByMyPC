@@ -5,7 +5,7 @@ namespace ByMyPC.Services.GPUService
 {
     public interface IGPUService
     {
-        ValueTask<Guid> CreateAsync(DTOGPUCreateModel model);
+        ValueTask<Guid> CreateAsync(DTOGPUCreateModel model, string? idempotencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOGPUModel>> GetByFilterAsync(DTOGPUFilter filter, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOGPUSmallModel>> GetByFilterWithPagAsync(DTOGPUFilter filter, int page, int pageSize, CancellationToken cancellationToken);
         Task<RDTOGPUModel?> GetByIDAsync(Guid id);
@@ -16,6 +16,6 @@ namespace ByMyPC.Services.GPUService
         Task<bool> RemoveAsync(Guid id);
         Task<IEnumerable<RDTOGPUModel>?> SearchByNameAsync(string name, CancellationToken cancellationToken);
         Task<IEnumerable<RDTOGPUSmallModel>?> SearchByNameAsyncWithPag(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<RDTOGPUModel?> UpdateAsync(DTOGPUUpdateModel model);
+        Task<RDTOGPUModel?> UpdateAsync(DTOGPUUpdateModel model, string? idempotencyKey, CancellationToken cancellationToken);
     }
 }

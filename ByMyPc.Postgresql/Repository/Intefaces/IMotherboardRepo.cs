@@ -7,7 +7,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
 {
     public interface IMotherboardRepo
     {
-        ValueTask<Guid> CreateAsync(MotherboardCreateModel model);
+        ValueTask<(Guid id, bool IsCreated)> CreateAsync(MotherboardCreateModel model, string idempotencyKey, CancellationToken cancellationToken);
         Task<MotherboardDbModel?> GetByIDAsync(Guid id);
         IAsyncEnumerable<MotherboardSmallDbModel> GetCardMotherboardDbAsync(CancellationToken cancellationToken);
         Task<IEnumerable<MotherboardSmallDbModel>> GetCardWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken);
@@ -17,7 +17,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         Task<IEnumerable<MotherboardDbModel>> GetByFilterAsync(MotherBoardFilterModel filter, CancellationToken cancellationToken);
         Task<IEnumerable<MotherboardSmallDbModel>> GetByFilterWithPagAsync(MotherBoardFilterModel filter, int page, int pageSize, CancellationToken cancellationToken);
         Task<IEnumerable<MotherboardSmallDbModel>> SearchByNameMotherboardSmallWithPaginationAsync(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<MotherboardDbModel?> UpdateAsync(MotherboardUpdateModel model);
+        Task<MotherboardDbModel?> UpdateAsync(MotherboardUpdateModel model, string idempotencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<MotherboardDbModel>> GetFullWithPag(int page, int pageSize, CancellationToken cancellationToken);
     }
 }

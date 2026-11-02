@@ -1,4 +1,4 @@
-using ByMyPc.Postgresql.CRUDModel.Operation;
+﻿using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Models.CpuModels.DTO;
@@ -100,7 +100,7 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
                 false,
                 default
                 );
-            guid = await repo.CreateAsync(testModel);
+            (guid, _) = await repo.CreateAsync(testModel, Guid.NewGuid().ToString(), CancellationToken.None);
             if (guid == Guid.Empty) Assert.Fail("Id test model not get");
 
         }
@@ -152,7 +152,7 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
                 false,
                 default
                 );
-            guid = await repo.CreateAsync(testModel);
+            (guid, _) = await repo.CreateAsync(testModel, Guid.NewGuid().ToString(), CancellationToken.None);
             if (guid == Guid.Empty) Assert.Fail("Id test model not get");
 
         }
@@ -208,7 +208,7 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
                 false,
                 default
                 );
-            guid = await repo.CreateAsync(testModel);
+            (guid, _) = await repo.CreateAsync(testModel, Guid.NewGuid().ToString(), CancellationToken.None);
             if (guid == Guid.Empty) Assert.Fail("Id test model not get");
 
         }
@@ -321,7 +321,7 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
                 false,
                 default
                 );
-            guid = await repo.CreateAsync(testModel);
+            (guid, _) = await repo.CreateAsync(testModel, Guid.NewGuid().ToString(), CancellationToken.None);
             if (guid == Guid.Empty) Assert.Fail("Id test model not get");
 
         }
@@ -338,7 +338,12 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
                 "TTTT",
                 false
                 );
-            var result = await httpClient.PutAsJsonAsync("/api/motherboard/", testUpdatedModel);
+            using var updateRequest = new HttpRequestMessage(HttpMethod.Put, "/api/motherboard/update/v2")
+            {
+                Content = JsonContent.Create(testUpdatedModel)
+            };
+            updateRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            var result = await httpClient.SendAsync(updateRequest);
 
             if (!result.IsSuccessStatusCode) { output.WriteLine(result.ReasonPhrase); }
 
@@ -384,7 +389,12 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
         default
         );
 
-        var result = await httpClient.PostAsJsonAsync("/api/motherboard/",motherboardCreateModel);
+        using var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/motherboard/create/v2")
+        {
+            Content = JsonContent.Create(motherboardCreateModel)
+        };
+        createRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+        var result = await httpClient.SendAsync(createRequest);
 
         if (!result.IsSuccessStatusCode) { output.WriteLine(result.ReasonPhrase); }
 
@@ -415,7 +425,7 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
                 false,
                 default
                 );
-            guid = await repo.CreateAsync(testModel);
+            (guid, _) = await repo.CreateAsync(testModel, Guid.NewGuid().ToString(), CancellationToken.None);
             if (guid == Guid.Empty) Assert.Fail("Id test model not get");
         }
         catch (Exception ex)
@@ -433,5 +443,7 @@ public class InterationTestsMotherboard : IClassFixture<TestWebApplicationFactor
     }
 
 }
+
+
 
 

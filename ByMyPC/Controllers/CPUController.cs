@@ -151,13 +151,18 @@ namespace ByMyPC.Controllers
         /// Update Cpu in db
         /// </summary>
         /// <param name="model">The parameters you want to update </param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Return full updated model</returns>
         /// <remarks>Do not forgot add to model id</remarks>
-        [HttpPut]
+        [HttpPut("update/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RDTOCpuSmallModel>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Update([FromBody] DTOCpuUpdateModel model) {
-            RDTOCpuModel? result = await cpuService.UpdateAsync(model);
+        public async Task<IActionResult> Update([FromBody] DTOCpuUpdateModel model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken)
+        {
+            RDTOCpuModel? result = await cpuService.UpdateAsync(model,idempotencyKey,cancellationToken);
             return result is not null ? Ok(result) : Problem(detail: "Data unexpect not updated");
         }
 
@@ -165,13 +170,17 @@ namespace ByMyPC.Controllers
         /// Create new Cpu in db
         /// </summary>
         /// <param name="model">The parameters you want to create</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Guid created Cpu</returns>
         /// <remarks>ID is generated automatically in db</remarks>
-        [HttpPost]
+        [HttpPost("create/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Create([FromBody] DTOCpuCreateModel model) {
-            var result = await cpuService.CreateAsync(model);
+        public async Task<IActionResult> Create([FromBody] DTOCpuCreateModel model,
+                                                [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+                                                CancellationToken cancellationToken) {
+            var result = await cpuService.CreateAsync(model, idempotencyKey, cancellationToken);
             return Ok(result);
         }
 

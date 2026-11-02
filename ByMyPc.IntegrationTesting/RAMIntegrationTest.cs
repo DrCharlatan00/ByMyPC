@@ -59,7 +59,7 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 RamCreateModel createModel = new("Test",1028,Postgresql.Models.TypeDDR.DDR2,663,true);
-                guid = await repo.CreateAsync(createModel);
+                (guid, _) = await repo.CreateAsync(createModel, Guid.NewGuid().ToString(), CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -119,7 +119,7 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 RamCreateModel createModel = new("Test", 1028, Postgresql.Models.TypeDDR.DDR2, 663, true);
-                guid = await repo.CreateAsync(createModel);
+                (guid, _) = await repo.CreateAsync(createModel, Guid.NewGuid().ToString(), CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -154,7 +154,7 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 RamCreateModel createModel = new("Test", 1028, Postgresql.Models.TypeDDR.DDR2, 663, true);
-                guid = await repo.CreateAsync(createModel);
+                (guid, _) = await repo.CreateAsync(createModel, Guid.NewGuid().ToString(), CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -190,7 +190,7 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 RamCreateModel createModel = new("Test", 1028, Postgresql.Models.TypeDDR.DDR2, 663, true);
-                guid = await repo.CreateAsync(createModel);
+                (guid, _) = await repo.CreateAsync(createModel, Guid.NewGuid().ToString(), CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -226,7 +226,7 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 RamCreateModel createModel = new("Test", 1028, Postgresql.Models.TypeDDR.DDR2, 663, true);
-                guid = await repo.CreateAsync(createModel);
+                (guid, _) = await repo.CreateAsync(createModel, Guid.NewGuid().ToString(), CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -268,7 +268,7 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 RamCreateModel createModel = new("Test", 1028, Postgresql.Models.TypeDDR.DDR2, 663, true);
-                guid = await repo.CreateAsync(createModel);
+                (guid, _) = await repo.CreateAsync(createModel, Guid.NewGuid().ToString(), CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -277,7 +277,12 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 DTORAMUpdate dto = new DTORAMUpdate(guid,"TTTT",2048,null, null, null);
-                var request = await client.PutAsJsonAsync("/api/ram",dto);
+                using var updateRequest = new HttpRequestMessage(HttpMethod.Put, "/api/ram/update/v2")
+                {
+                    Content = JsonContent.Create(dto)
+                };
+                updateRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+                var request = await client.SendAsync(updateRequest);
 
                 Assert.True(request.IsSuccessStatusCode,request.ReasonPhrase);
 
@@ -304,7 +309,12 @@ namespace ByMyPc.IntegrationTesting
         public async Task CreateTest()
         {
             DTORAMCreate dto = new DTORAMCreate("CreateTEst",512,Postgresql.Models.TypeDDR.DDR,633,false);
-            var request = await client.PostAsJsonAsync("/api/ram",dto);
+            using var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/ram/create/v2")
+            {
+                Content = JsonContent.Create(dto)
+            };
+            createRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            var request = await client.SendAsync(createRequest);
             Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
 
             var id = await request.Content.ReadFromJsonAsync<Guid>();
@@ -326,7 +336,7 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 RamCreateModel createModel = new("Test", 1028, Postgresql.Models.TypeDDR.DDR2, 663, true);
-                guid = await repo.CreateAsync(createModel);
+                (guid, _) = await repo.CreateAsync(createModel, Guid.NewGuid().ToString(), CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -358,7 +368,7 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 RamCreateModel createModel = new("Test", 1028, Postgresql.Models.TypeDDR.DDR2, 663, true);
-                guidRam = await repo.CreateAsync(createModel);
+                (guidRam, _) = await repo.CreateAsync(createModel, Guid.NewGuid().ToString(), CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -381,7 +391,7 @@ namespace ByMyPc.IntegrationTesting
             try
             {
                 RamCreateModel createModel = new("Test", 1028, Postgresql.Models.TypeDDR.DDR2, 663, true);
-                guidRam = await repo.CreateAsync(createModel);
+                (guidRam, _) = await repo.CreateAsync(createModel, Guid.NewGuid().ToString(), CancellationToken.None);
                 bool resAttach = await attachRepo.AttachAsync(idPc, guidRam);
                 if (!resAttach) Assert.Fail("Can't Attach RAM");
             }
@@ -398,3 +408,5 @@ namespace ByMyPc.IntegrationTesting
         #endregion
     }
 }
+
+

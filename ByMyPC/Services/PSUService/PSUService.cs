@@ -269,11 +269,12 @@ namespace ByMyPC.Services.PSUService
         #endregion
 
         #region Update 
-        public async Task<RDTOPSUModel?> UpdateAsync(DTOPSUModelUpdate model)
+        public async Task<RDTOPSUModel?> UpdateAsync(DTOPSUModelUpdate model, string? idempotencyKey, CancellationToken cancellationToken)
         {
 #if DEBUG
             logger.LogInformation("-----------------Service Start Work-----------------");
 #endif
+            CheckIdempotencyKey(idempotencyKey);
 #if DEBUG
             logger.LogInformation("Update func get data: {@data}", model);
 #endif
@@ -286,7 +287,7 @@ namespace ByMyPC.Services.PSUService
                 model.IsModular,
                 model.IsCertified
                 );
-            var data = await repo.UpdateAsync(update);
+            var data = await repo.UpdateAsync(update, idempotencyKey!, cancellationToken);
             if (data is null) return null;
 #if DEBUG
             logger.LogInformation("Data update in db OK");
@@ -305,12 +306,12 @@ namespace ByMyPC.Services.PSUService
         #endregion
 
         #region Create 
-        public async Task<Guid> CreateAsync(DTOPSUModelCreate model)
+        public async Task<Guid> CreateAsync(DTOPSUModelCreate model, string? idempotencyKey, CancellationToken cancellationToken)
         {
 #if DEBUG
             logger.LogInformation("-----------------Service Start Work-----------------");
 #endif
-
+            CheckIdempotencyKey(idempotencyKey);
 #if DEBUG
             logger.LogInformation("Validating data...........");
 #endif
@@ -328,33 +329,34 @@ namespace ByMyPC.Services.PSUService
 
 
 
-            Guid id = await repo.CreateAsync(Map(model));
+            (Guid id, bool IsCreated) result = await repo.CreateAsync(Map(model), idempotencyKey!, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("End procces in db");
 #endif
 
-
-            var caching = cacheService.IncrementAsync(keyCache);
-            var signal = hub.Clients.All.SendAsync("PSUUpdated", id);
+            if (!result.IsCreated)
+            {
+                var caching = cacheService.IncrementAsync(keyCache);
+                var signal = hub.Clients.All.SendAsync("PSUUpdated", result.id);
 
 
 #if DEBUG
-            logger.LogInformation("Side Service start.....");
+                logger.LogInformation("Side Service start.....");
 #endif
 
 
-            await Task.WhenAll(caching, signal);
+                await Task.WhenAll(caching, signal);
 
-
+            }
 #if DEBUG
-            logger.LogInformation("Return id = {id}",id);
+            logger.LogInformation("Return id = {id}",result.id);
 #endif
 #if DEBUG
             logger.LogInformation("-----------------------Service end work------------------------");
 #endif
 
-            return id;
+            return result.id;
         }
         #endregion
 
@@ -433,7 +435,12 @@ namespace ByMyPC.Services.PSUService
 
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
         }
-
+        private static void CheckIdempotencyKey(string? key)
+        {
+            if (key is null) throw new ArgumentNullException("Idempotency key is null");
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+            if (key.Length > 200) throw new ArgumentException("Key is long");
+        }
         private static void CheckParam(string name)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);

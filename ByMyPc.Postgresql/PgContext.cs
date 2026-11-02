@@ -25,6 +25,7 @@ namespace ByMyPc.Postgresql
 
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
         public DbSet<ProblemDetailModel> Problems { get; set; }
+        public DbSet<IdempotencyRecord> idempotencyRecords { get; set; }
         public PgContext(DbContextOptions<PgContext> options) : base(options)
         {
             
@@ -156,6 +157,18 @@ namespace ByMyPc.Postgresql
 
                 x.HasIndex(x => x.TimeProblemCreated);
 
+            });
+
+            modelBuilder.Entity<IdempotencyRecord>(x => {
+                x.HasKey(x => x.ID);
+
+                x.Property(x => x.Operation).IsRequired().HasMaxLength(100);
+
+                x.Property(x => x.Key).IsRequired().HasMaxLength(200);
+
+                x.Property(x => x.RequestHash).IsRequired().HasMaxLength(64);
+
+                x.HasIndex(x => new { x.Operation, x.Key }).IsUnique();
             });
 
             base.OnModelCreating(modelBuilder);

@@ -70,7 +70,10 @@ public class GPUIntegrationTest : IClassFixture<TestWebApplicationFactory>
                 "PCI_E",
                 "GDDR6"
                 );
-            id = await repo.CreateAsync( model );
+            (id, _) = await repo.CreateAsync(
+                model,
+                Guid.NewGuid().ToString(),
+                CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -113,7 +116,10 @@ public class GPUIntegrationTest : IClassFixture<TestWebApplicationFactory>
                 "PCI_E",
                 "GDDR6"
                 );
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(
+                model,
+                Guid.NewGuid().ToString(),
+                CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -142,7 +148,10 @@ public class GPUIntegrationTest : IClassFixture<TestWebApplicationFactory>
                 "PCI_E",
                 "GDDR6"
                 );
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(
+                model,
+                Guid.NewGuid().ToString(),
+                CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -171,7 +180,10 @@ public class GPUIntegrationTest : IClassFixture<TestWebApplicationFactory>
                 "PCI_E",
                 "GDDR6"
                 );
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(
+                model,
+                Guid.NewGuid().ToString(),
+                CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -204,7 +216,10 @@ public class GPUIntegrationTest : IClassFixture<TestWebApplicationFactory>
                 "PCI_E",
                 "GDDR6"
                 );
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(
+                model,
+                Guid.NewGuid().ToString(),
+                CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -226,34 +241,42 @@ public class GPUIntegrationTest : IClassFixture<TestWebApplicationFactory>
     #endregion
 
     #region Test Update 
-    [Fact(Skip = "Interesting bug")]
+    [Fact]
     public async Task TestUpdate()
     {
-        Guid id = Guid.Empty;
-        try
+        var createKey = Guid.NewGuid().ToString();
+        var createModel = new DTOGPUCreateModel(
+            "Test",
+            2096,
+            Postgresql.Models.VideoSlots.PCI_E,
+            916,
+            "PCI_E",
+            "GDDR6");
+
+        using var createRequest = new HttpRequestMessage(HttpMethod.Post, "api/gpu/create/v2")
         {
-            GPUCreateModel model = new GPUCreateModel(
-                "Test",
-                2096,
-                Postgresql.Models.VideoSlots.PCI_E,
-                916,
-                "PCI_E",
-                "GDDR6"
-                );
-            id = await repo.CreateAsync(model);
-        }
-        catch (Exception ex)
-        {
-            Assert.Fail($"Can't create test data ex, {ex}");
-        }
+            Content = JsonContent.Create(createModel)
+        };
+        createRequest.Headers.Add("Idempotency-Key", createKey);
+
+        var createResponse = await client.SendAsync(createRequest);
+        Assert.True(createResponse.IsSuccessStatusCode, createResponse.ReasonPhrase);
+        var id = await createResponse.Content.ReadFromJsonAsync<Guid>();
+
         DTOGPUUpdateModel modelUpdate = new(id,
-                                      "TTTT",
+                                       "TTTT",
+                                       null,
                                       null,
-                                      null,
-                                      null,
-                                      null,
-                                      null);
-        var request = await client.PutAsJsonAsync("api/gpu/", modelUpdate);
+                                       null,
+                                       null,
+                                       null);
+        using var updateRequest = new HttpRequestMessage(HttpMethod.Put, "api/gpu/update/v2")
+        {
+            Content = JsonContent.Create(modelUpdate)
+        };
+        updateRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+
+        var request = await client.SendAsync(updateRequest);
         Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
 
         var data = await repo.GetByID(id); //this not send actual information, but he not have bug
@@ -268,7 +291,13 @@ public class GPUIntegrationTest : IClassFixture<TestWebApplicationFactory>
     public async Task TestCreate()
     {
         DTOGPUCreateModel create = new("TestCreate",2096,Postgresql.Models.VideoSlots.PCI_E,256,"PCI_E 3.0","GDDR3");
-        var request = await client.PostAsJsonAsync("api/gpu/", create);
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "api/gpu/create/v2")
+        {
+            Content = JsonContent.Create(create)
+        };
+        requestMessage.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+
+        var request = await client.SendAsync(requestMessage);
         Assert.True(request.IsSuccessStatusCode, request.ReasonPhrase);
         var ans = await request.Content.ReadFromJsonAsync<Guid>();
         var data = await repo.GetByID(ans);
@@ -291,7 +320,10 @@ public class GPUIntegrationTest : IClassFixture<TestWebApplicationFactory>
                 "PCI_E",
                 "GDDR6"
                 );
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(
+                model,
+                Guid.NewGuid().ToString(),
+                CancellationToken.None);
         }
         catch (Exception ex)
         {

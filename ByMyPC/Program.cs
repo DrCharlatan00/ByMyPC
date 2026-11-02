@@ -212,6 +212,7 @@ app.UseWhen(
     );
 
 app.UseMiddleware<MiddewareOldRejectPath>();
+app.UseMiddleware<RequestLimiterMiddeware>();
 app.UseAuthorization();
 
 app.UseMiddleware<MiddlewareExceptions>();

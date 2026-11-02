@@ -169,7 +169,7 @@ namespace ByMyPC.Controllers
         /// <param name="idempotencyKey">Key from operation</param>
         /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Guid new model</returns>
-        [HttpPost]
+        [HttpPost("create/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Guid))]
         public async Task<IActionResult> Create(
             [FromBody] DTOMotherboardCreateModel model,

@@ -155,7 +155,7 @@ namespace ByMyPC.Controllers
         /// <param name="idempotencyKey">Key from operation</param>
         /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Guid new HDD</returns>
-        [HttpPost("/create/v2")]
+        [HttpPost("create/v2")]
         public async Task<IActionResult> Create(
             [FromBody] DTOHDDCreateModel model,
             [FromHeader(Name = "Idempontency-Key")] string? idempotencyKey,

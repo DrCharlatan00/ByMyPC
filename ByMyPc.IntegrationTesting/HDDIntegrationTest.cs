@@ -1,4 +1,4 @@
-using ByMyPc.Postgresql.CRUDModel.Operation;
+﻿using ByMyPc.Postgresql.CRUDModel.Operation;
 using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository;
 using ByMyPc.Postgresql.Repository.Intefaces;
@@ -79,7 +79,7 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
                 100,
                 HddConnector.SATA
                 );
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
         }
         catch {
             Assert.Fail("Test model not created, Test abort");
@@ -137,7 +137,7 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
                 100,
                 HddConnector.SATA
                 );
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
         }
         catch
         {
@@ -183,7 +183,7 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
                 100,
                 HddConnector.SATA
                 );
-            id = await repo.CreateAsync(model);
+            (id, _) = await repo.CreateAsync(model, Guid.NewGuid().ToString(), CancellationToken.None);
         }
         catch
         {
@@ -227,11 +227,13 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task TestGetByFilter()
     {
-        var id = await repo.CreateAsync(
+        var (id, _) = await repo.CreateAsync(
             new HDDCreateModel(
                 "Test",
                 100,
-                HddConnector.SATA));
+                HddConnector.SATA),
+            Guid.NewGuid().ToString(),
+            CancellationToken.None);
 
         try
         {
@@ -261,11 +263,13 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task TestGetByFilterWithPag()
     {
-        var id = await repo.CreateAsync(
+        var (id, _) = await repo.CreateAsync(
             new HDDCreateModel(
                 "Test",
                 100,
-                HddConnector.SATA));
+                HddConnector.SATA),
+            Guid.NewGuid().ToString(),
+            CancellationToken.None);
 
         try
         {
@@ -291,15 +295,21 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
 
     [Fact]
     public async Task TestUpdate() {
-        var id = await repo.CreateAsync(
+        var (id, _) = await repo.CreateAsync(
         new HDDCreateModel(
             "Test",
             100,
-            HddConnector.SATA));
+            HddConnector.SATA),
+        Guid.NewGuid().ToString(),
+        CancellationToken.None);
 
         DTOHDDUpdateModel updateModel = new DTOHDDUpdateModel(id,"TTTT",100,ByMyPC.Models.HDDModels.HddConnectorType.SATA);
-        var request = await httpClient.PutAsJsonAsync(
-        "/api/hdds/",updateModel);
+         using var updateRequest = new HttpRequestMessage(HttpMethod.Put, "/api/hdds/update/v2")
+         {
+             Content = JsonContent.Create(updateModel)
+         };
+         updateRequest.Headers.Add("Idempontency-Key", Guid.NewGuid().ToString());
+         var request = await httpClient.SendAsync(updateRequest);
 
 
         Assert.True(
@@ -317,8 +327,12 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
     {
 
         DTOHDDCreateModel createModel = new DTOHDDCreateModel("TTTT", 100, ByMyPC.Models.HDDModels.HddConnectorType.SATA);
-        var request = await httpClient.PostAsJsonAsync(
-        "/api/hdds/", createModel);
+         using var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/hdds/create/v2")
+         {
+             Content = JsonContent.Create(createModel)
+         };
+         createRequest.Headers.Add("Idempontency-Key", Guid.NewGuid().ToString());
+         var request = await httpClient.SendAsync(createRequest);
 
 
         Assert.True(
@@ -337,11 +351,13 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
     public async Task TestDelete()
     {
 
-        var id = await repo.CreateAsync(
+        var (id, _) = await repo.CreateAsync(
   new HDDCreateModel(
       "Test",
       100,
-      HddConnector.SATA));
+      HddConnector.SATA),
+  Guid.NewGuid().ToString(),
+  CancellationToken.None);
         var request = await httpClient.DeleteAsync(
         $"/api/hdds?id={id}");
 
@@ -372,11 +388,13 @@ public class HDDIntegrationTest : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task TestAttach()//Before pushing to the PC repo, create a test record with the GUID 590e5d08-46b0-4e08-bf0a-9c3b7f8afb65.
     {
-        var id = await repo.CreateAsync(
-new HDDCreateModel(
-    "Test",
-    100,
-    HddConnector.SATA));
+        var (id, _) = await repo.CreateAsync(
+ new HDDCreateModel(
+     "Test",
+     100,
+     HddConnector.SATA),
+ Guid.NewGuid().ToString(),
+ CancellationToken.None);
         DTOHddOperations test = new(new Guid("590e5d08-46b0-4e08-bf0a-9c3b7f8afb65"),id);
         var request = await httpClient.PutAsJsonAsync(
         $"/api/hdds/attach/",test);
@@ -390,11 +408,13 @@ new HDDCreateModel(
     [Fact]
     public async Task TestDeAttach()//Before pushing to the PC repo, create a test record with the GUID 590e5d08-46b0-4e08-bf0a-9c3b7f8afb65.
     {
-        var id = await repo.CreateAsync(
-new HDDCreateModel(
-    "Test",
-    100,
-    HddConnector.SATA));
+        var (id, _) = await repo.CreateAsync(
+ new HDDCreateModel(
+     "Test",
+     100,
+     HddConnector.SATA),
+ Guid.NewGuid().ToString(),
+ CancellationToken.None);
         DTOHddOperations test = new(new Guid("590e5d08-46b0-4e08-bf0a-9c3b7f8afb65"), id);
         var request = await httpClient.PutAsJsonAsync(
         $"/api/hdds/attach/", test);
@@ -412,3 +432,5 @@ $"/api/hdds/deattach/", test);
     }
 
 }
+
+

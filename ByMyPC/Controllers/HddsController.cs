@@ -132,6 +132,8 @@ namespace ByMyPC.Controllers
         /// Put method for update HDD
         /// </summary>
         /// <param name="model">Model new infomation for HDD</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Updated model HDD</returns>
         /// <remarks>Do not fotgot hand over id in model</remarks>
         [HttpPut("update/v2")]
@@ -150,6 +152,8 @@ namespace ByMyPC.Controllers
         /// Post method for create new HDD
         /// </summary>
         /// <param name="model">New HDD</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Guid new HDD</returns>
         [HttpPost("/create/v2")]
         public async Task<IActionResult> Create(

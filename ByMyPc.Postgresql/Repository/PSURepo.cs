@@ -6,10 +6,15 @@ using ByMyPc.Postgresql.Models;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Npgsql;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Npgsql.Internal.Postgres;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Xml.Serialization;
 
 namespace ByMyPc.Postgresql.Repository
@@ -131,8 +136,19 @@ namespace ByMyPc.Postgresql.Repository
         #endregion
 
         #region Update
-        public async Task<PSUDbModel?> UpdateAsync(PSUUpdateModel model)
+        public async Task<PSUDbModel?> UpdateAsync(PSUUpdateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
+            const string operation = "PSUUpdate";
+
+            var requestHash = Convert.ToHexString(
+                    SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(model))
+                );
+
+            var isExist = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey,
+                                                                                               cancellationToken);
+
+            if (isExist is not null) return null;
+
             var old = await context.Psu.FirstOrDefaultAsync(x => x.ID == model.id);
             if (old is null) return null;
             try
@@ -164,13 +180,36 @@ namespace ByMyPc.Postgresql.Repository
                 CreatedAt = DateTime.UtcNow,
                 Payload = payload
             };
+            var idempotencyKey2Db = new IdempotencyRecord
+            {
+                ID = Guid.NewGuid(),
+                Key = idempotencyKey,
+                Operation = operation,
+                RequestHash = requestHash,
+                ResourceId = old.ID,
+                CreateAt = DateTime.UtcNow,
+            };
+
             await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.idempotencyRecords.AddAsync(idempotencyKey2Db);
                 await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return old;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+
+                var concurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey,
+                                                                                               cancellationToken);
+                if (concurrentResult is null) throw;
+                return null;
             }
             catch (Exception ex)
             {
@@ -181,8 +220,18 @@ namespace ByMyPc.Postgresql.Repository
         }
         #endregion
         #region Create
-        public async Task<Guid> CreateAsync(PSUCreateModel model)
+        public async Task<(Guid id, bool IsCreated)> CreateAsync(PSUCreateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
+            const string operation = "PSUCreate";
+
+            var requestHash = Convert.ToHexString(
+                    SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(model))
+                );
+
+            var isExist = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey,
+                                                                                               cancellationToken);
+
+            if (isExist is not null) return (GetPreviousResult(isExist,requestHash),false);
             PSUDbModel NewPsu = new PSUDbModel
             {
                 ID = Guid.NewGuid(),
@@ -201,20 +250,43 @@ namespace ByMyPc.Postgresql.Repository
 
             var kafkaMessage = new OutboxMessage
             {
-                EventType = "PSUUpdated",
+                EventType = "PSUCreated",
                 Topic = "psu-topic",
                 AggregateId = NewPsu.ID.ToString(),
                 CreatedAt = DateTime.UtcNow,
                 Payload = payload
             };
+            var idempotencyKey2Db = new IdempotencyRecord
+            {
+                ID = Guid.NewGuid(),
+                Key = idempotencyKey,
+                Operation = operation,
+                RequestHash = requestHash,
+                ResourceId = NewPsu.ID,
+                CreateAt = DateTime.UtcNow,
+            };
             await using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                await context.idempotencyRecords.AddAsync(idempotencyKey2Db);
                 await context.Psu.AddAsync(NewPsu);
                 await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return NewPsu.ID;
+                return (NewPsu.ID, true);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+            {
+                await transaction.RollbackAsync();
+                context.ChangeTracker.Clear();
+
+                var concurrentResult = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey,
+                                                                                               cancellationToken);
+                if (concurrentResult is null) throw;
+                return (GetPreviousResult(concurrentResult, requestHash), false);
             }
             catch (Exception ex)
             {
@@ -258,5 +330,25 @@ namespace ByMyPc.Postgresql.Repository
             }
         }
         #endregion
+
+        #region Checker
+        private static Guid GetPreviousResult(
+        IdempotencyRecord record,
+        string requestHash)
+        {
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(record.RequestHash),
+                    Convert.FromHexString(requestHash)))
+            {
+                throw new IdempotencyKeyConflictException(
+                    "this Idempotency-Key in use with other request.");
+            }
+
+            return record.ResourceId;
+        }
+        #endregion
     }
+
+
+
 }

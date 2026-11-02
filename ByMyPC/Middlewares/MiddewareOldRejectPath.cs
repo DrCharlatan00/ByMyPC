@@ -35,6 +35,12 @@
                  "api/hdd/update/v1",
                  "api/motherboard/create/v1",
                  "api/motherboard/update/v1",
+                 "api/psu/create/v1",
+                 "api/psu/update/v1",
+                 "api/pc/create/v1",
+                 "api/pc/update/v1",
+                 "api/ram/create/v1",
+                 "api/ram/update/v1",
         };
 
         public async Task InvokeAsync(HttpContext content) {

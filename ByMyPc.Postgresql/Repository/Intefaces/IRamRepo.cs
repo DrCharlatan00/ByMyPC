@@ -7,7 +7,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
 {
     public interface IRamRepo
     {
-        ValueTask<Guid> CreateAsync(RamCreateModel model);
+        ValueTask<(Guid, bool)> CreateAsync(RamCreateModel model, string idempotencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<RamDbModel>> GetByFilterAsync(RamFilterModel filterModel, CancellationToken cancellationToken);
         Task<IEnumerable<RamSmallModel>> GetByFilterWithPagAsync(RamFilterModel filterModel, int page, int pageSize, CancellationToken cancellationToken);
         Task<RamDbModel?> GetByIdAsync(Guid id);
@@ -18,6 +18,6 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
         ValueTask<bool> RemoveAsync(Guid id);
         Task<IEnumerable<RamDbModel>> SearchByNameAsync(string name, CancellationToken cancellationToken);
         Task<IEnumerable<RamSmallModel>> SearchByNameWithPagAsync(string name, int page, int pageSize, CancellationToken cancellationToken);
-        Task<RamDbModel?> UpdateAsync(RamUpdateModel model);
+        Task<RamDbModel?> UpdateAsync(RamUpdateModel model, string idempotencyKey, CancellationToken cancellationToken);
     }
 }

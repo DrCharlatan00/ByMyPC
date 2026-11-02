@@ -151,6 +151,8 @@ namespace ByMyPC.Controllers
         /// Update Cpu in db
         /// </summary>
         /// <param name="model">The parameters you want to update </param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Return full updated model</returns>
         /// <remarks>Do not forgot add to model id</remarks>
         [HttpPut("update/v2")]
@@ -168,6 +170,8 @@ namespace ByMyPC.Controllers
         /// Create new Cpu in db
         /// </summary>
         /// <param name="model">The parameters you want to create</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>Guid created Cpu</returns>
         /// <remarks>ID is generated automatically in db</remarks>
         [HttpPost("create/v2")]

@@ -7,7 +7,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
 {
     public interface ICpuRepo
     {
-        ValueTask<Guid> CreateAsync(CpuCreateModel model, string idempotencyKey, CancellationToken cancellationToken);
+        ValueTask<(Guid id, bool IsCreated)> CreateAsync(CpuCreateModel model, string idempotencyKey, CancellationToken cancellationToken);
         Task<IEnumerable<CpuDbModel>> GetAsyncPagination(int page, int pageSize, CancellationToken cancellationToken);
         Task<CpuDbModel?> GetByIDAsync(Guid id);
         IAsyncEnumerable<CpuDbModel> GetCpuRepoAsyncEnumerable(CancellationToken cancellationToken);

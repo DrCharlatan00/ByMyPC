@@ -292,35 +292,37 @@ namespace ByMyPC.Services.MotherboardService
                 logger.LogInformation("Procces create start in db, model information = {@model}", model);
 #endif
 
-                Guid id = await repo.CreateAsync(Map(model),idempotencyKey!,cancellationToken);
+                (Guid id, bool IsCreated) result = await repo.CreateAsync(Map(model),idempotencyKey!,cancellationToken);
 
 #if DEBUG
                 logger.LogInformation("Motherboard created");
 #endif
 
-
-                var signalR = hub.Clients.All.SendAsync("NewMotherboardCreated", id);
-                const string keyCacheV = "motherboard:version";
-                var Caching = cacheService.IncrementAsync(keyCacheV);
+                if (!result.IsCreated)
+                {
+                    var signalR = hub.Clients.All.SendAsync("NewMotherboardCreated", result.id);
+                    const string keyCacheV = "motherboard:version";
+                    var Caching = cacheService.IncrementAsync(keyCacheV);
 
 
 #if DEBUG
-                logger.LogInformation("Side Serviced started...");
+                    logger.LogInformation("Side Serviced started...");
 #endif
 
-                try
-                {
-                    await Task.WhenAll(Caching, signalR);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
-                }
+                    try
+                    {
+                        await Task.WhenAll(Caching, signalR);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
+                    }
 
+                }
 #if DEBUG
                 logger.LogInformation("Retrieving data");
 #endif
-                return id;
+                return result.id;
             }
             catch (Exception ex) {
                 logger.LogWarning(ex, "Item not created model: {@model}", model);

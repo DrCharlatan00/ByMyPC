@@ -148,8 +148,10 @@ namespace ByMyPC.Controllers
         /// Updates an existing GPU.
         /// </summary>
         /// <param name="model">The DTO containing fields to update.</param>
+        /// <param name="idempotencyKey">Key from operation</param>
+        /// <param name="cancellationToken">Cancellation token for cancel operation</param>
         /// <returns>The updated GPU model.</returns>
-        [HttpPut]
+        [HttpPut("update/v2")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RDTOGPUModel))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update([FromBody] DTOGPUUpdateModel model,

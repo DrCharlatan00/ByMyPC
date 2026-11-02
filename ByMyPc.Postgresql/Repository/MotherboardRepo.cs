@@ -129,7 +129,7 @@ namespace ByMyPc.Postgresql.Repository
             const string opertation = "MBUpdate";
 
             var requestHash = Convert.ToHexString(
-                    SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(idempotencyKey))
+                    SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(model))
                 );
 
             var isExist = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == opertation && x.Key == idempotencyKey, cancellationToken);
@@ -199,20 +199,20 @@ namespace ByMyPc.Postgresql.Repository
 
         #region Create
 
-        public async ValueTask<Guid> CreateAsync(MotherboardCreateModel model, string idempotencyKey, CancellationToken cancellationToken)
+        public async ValueTask<(Guid id, bool IsCreated)> CreateAsync(MotherboardCreateModel model, string idempotencyKey, CancellationToken cancellationToken)
         {
             const string operation = "MBCreate";
 
             var requestHash = Convert.ToHexString(
                     SHA256.HashData(
-                            JsonSerializer.SerializeToUtf8Bytes(idempotencyKey)
+                            JsonSerializer.SerializeToUtf8Bytes(model)
                         )
                 );
 
             var isExist = await context.idempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Operation == operation && x.Key == idempotencyKey,
                                                                                                cancellationToken);
 
-            if (isExist is not null) return GetPreviousResult(isExist, requestHash);
+            if (isExist is not null) return (GetPreviousResult(isExist, requestHash),false);
 
             await using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -256,7 +256,7 @@ namespace ByMyPc.Postgresql.Repository
                 await context.OutboxMessages.AddAsync(kafkaMessage);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return newModel.ID;
+                return (newModel.ID, true);
             }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException {
                 SqlState: PostgresErrorCodes.UniqueViolation
@@ -269,7 +269,7 @@ namespace ByMyPc.Postgresql.Repository
 
                 if (concurrentResult is null) throw;
 
-                return GetPreviousResult(concurrentResult,requestHash);
+                return (GetPreviousResult(concurrentResult, requestHash), false);
 
             }
             catch (Exception ex)

@@ -375,7 +375,7 @@ namespace ByMyPC.Services.HDDService
             logger.LogInformation("Start creating in db...");
 #endif
 
-            Guid id = await repo.CreateAsync(model, idempotencyKey, cancellationToken);
+            (Guid id, bool IsCreated) res = await repo.CreateAsync(model, idempotencyKey, cancellationToken);
 
 
 #if DEBUG
@@ -386,18 +386,19 @@ namespace ByMyPC.Services.HDDService
             logger.LogInformation("Side Services start");
 #endif
 
+            if (!res.IsCreated)
+            {
 
-
-            var RedisUpdate = cacheService.IncrementAsync("hdd:version");
-            var signalR = hub.Clients.All.SendAsync("HDDCreated", id);
-            await Task.WhenAll(signalR, RedisUpdate);
-
+                var RedisUpdate = cacheService.IncrementAsync("hdd:version");
+                var signalR = hub.Clients.All.SendAsync("HDDCreated", res.id);
+                await Task.WhenAll(signalR, RedisUpdate);
+            }
 #if DEBUG
-            logger.LogInformation("Return ID = {id}",id);
+            logger.LogInformation("Return ID = {id}", res.id);
 #endif
 
 
-            return id;
+            return res.id;
         }
 
         public async Task<Guid> CreateAndAttachAsync(DTOHDDCreateModel dto, Guid pcId) {

@@ -404,29 +404,31 @@ namespace ByMyPC.Services.CpuService
 #if DEBUG
             logger.LogInformation("Model pass, Start Db Creating............");
 #endif
-            var result = await repo.CreateAsync(Map(model),idempotencyKey!,cancellationToken);
+            (Guid id, bool IsCreated) result = await repo.CreateAsync(Map(model), idempotencyKey!, cancellationToken);
 
 #if DEBUG
             logger.LogInformation("Db end Operation, CPU Created\nStart Side Services.....................");
 #endif
 
-
-            var signalR = hub.Clients.All.SendAsync("NewCpuCreated", result);
-
-            const string keyCacheV = "cpu:version";
-            var incrementCache = cacheService.IncrementAsync(keyCacheV);
-            try
+            if (result.IsCreated)
             {
-                await Task.WhenAll(incrementCache, signalR);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
+                var signalR = hub.Clients.All.SendAsync("NewCpuCreated", result.id);
+
+                const string keyCacheV = "cpu:version";
+                var incrementCache = cacheService.IncrementAsync(keyCacheV);
+                try
+                {
+                    await Task.WhenAll(incrementCache, signalR);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Redis or SignalR error\n ex message: {mes}", ex.Message);
+                }
             }
 #if DEBUG
             logger.LogInformation("---------------------End Work Service--------------------");
 #endif
-            return result;
+            return result.id;
         }
 
         public async ValueTask<bool> RemoveAsync(Guid id)

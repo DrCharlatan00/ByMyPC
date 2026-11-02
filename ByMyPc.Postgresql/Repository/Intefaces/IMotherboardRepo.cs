@@ -7,7 +7,7 @@ namespace ByMyPc.Postgresql.Repository.Intefaces
 {
     public interface IMotherboardRepo
     {
-        ValueTask<Guid> CreateAsync(MotherboardCreateModel model, string idempotencyKey, CancellationToken cancellationToken);
+        ValueTask<(Guid id, bool IsCreated)> CreateAsync(MotherboardCreateModel model, string idempotencyKey, CancellationToken cancellationToken);
         Task<MotherboardDbModel?> GetByIDAsync(Guid id);
         IAsyncEnumerable<MotherboardSmallDbModel> GetCardMotherboardDbAsync(CancellationToken cancellationToken);
         Task<IEnumerable<MotherboardSmallDbModel>> GetCardWithPaginationAsync(int page, int pageSize, CancellationToken cancellationToken);

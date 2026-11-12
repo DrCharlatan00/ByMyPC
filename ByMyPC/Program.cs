@@ -2,6 +2,7 @@ using ByMyPc.Postgresql;
 using ByMyPc.Postgresql.Repository;
 using ByMyPc.Postgresql.Repository.Intefaces;
 using ByMyPC.Caching;
+using ByMyPC.Extensions;
 using ByMyPC.Hubs;
 using ByMyPC.Metrics;
 using ByMyPC.Middlewares;
@@ -38,6 +39,7 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -155,7 +157,6 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<DependencyHealthMe
 
 builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
         .AddMeter("ByMyPc.Health")
         .AddPrometheusExporter());
 #endregion
@@ -192,7 +193,7 @@ builder.Services.AddTransient<IValidator<DTOPCCreateModel>, PCValidatorCreate>()
 
 var app = builder.Build();
 
-
+await app.InitializeDatebaseAsync();
 
 
 // Configure the HTTP request pipeline.
@@ -200,6 +201,9 @@ if (app.Environment.IsDevelopment())
 {
     app.MapScalarApiReference();
     app.MapOpenApi();
+    app.MapHealthChecks("/alive",new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions {
+        Predicate = check => check.Tags.Contains("live")
+    });
 }
 
 app.UseWhen(
@@ -240,12 +244,12 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
 
 app.MapHealthChecks("/health/redis", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
-    Predicate = check => check.Name == "cache"
+    Predicate = check => check.Name == "Redis"
 });
 
 app.MapHealthChecks("/health/db", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
-    Predicate = check => check.Name == "db"
+    Predicate = check => check.Name == "ByMyPC"
 });
 #endregion
 

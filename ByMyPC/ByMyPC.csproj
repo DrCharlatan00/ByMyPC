@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ByMyPc.Postgresql\ByMyPc.Postgresql.csproj" />
+    <ProjectReference Include="..\ByMyPc.ServiceDefaults\ByMyPc.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

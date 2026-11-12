@@ -1,5 +1,7 @@
 <Solution>
+  <Project Path="ByMyPC.AppHost/ByMyPC.AppHost.csproj" />
   <Project Path="ByMyPc.IntegrationTesting/ByMyPc.IntegrationTesting.csproj" Id="7bb8720c-bde2-4c59-96bf-194e793b7ba6" />
   <Project Path="ByMyPc.Postgresql/ByMyPc.Postgresql.csproj" />
+  <Project Path="ByMyPc.ServiceDefaults/ByMyPc.ServiceDefaults.csproj" />
   <Project Path="ByMyPC/ByMyPC.csproj" />
 </Solution>

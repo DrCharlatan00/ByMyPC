@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# AiderDesk and Aider local data
+.aider-desk/
+.aider.input.history
+.aider.chat.history.md
+.aider.tags.cache.*
+.aider*
